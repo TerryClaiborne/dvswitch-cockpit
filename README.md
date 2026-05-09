@@ -83,7 +83,7 @@ Example:
 http://192.168.1.120/dvswitch_cockpit/
 ```
 
-The first time the installer creates login credentials, it prints an **initial password** to the terminal. Sign in at the login page; after that, the dashboard, status ribbon, and APIs load normally. Use **Log out** in the header when you are finished.
+The first time the installer creates login credentials, it prints an **initial password** to the terminal. Anyone can open the dashboard, status ribbon, and runtime API **without** signing in. **Sign in** when you want to use **Analog Bridge / MMDVM Bridge restart** buttons (those requests require a session). Use **Log out** when finished.
 
 To set or change the password at any time:
 
@@ -269,11 +269,13 @@ git status --short
 git log --oneline --decorate -5
 ```
 
-Check the API (expects a **logged-in session**; without cookies you get `401` / `Authentication required`):
+Check the read-only status API (works without login):
 
 ```bash
 curl -ksS https://127.0.0.1/dvswitch_cockpit/api/runtime_status.php
 ```
+
+Service restart requests (`api/service_action.php`) require a **logged-in session**; without cookies they return `401` / `Authentication required`.
 
 Clear Cockpit runtime history:
 

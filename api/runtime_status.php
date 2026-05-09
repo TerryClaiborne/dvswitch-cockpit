@@ -1,7 +1,9 @@
 <?php
 declare(strict_types=1);
 
-require_once __DIR__ . '/runtime/_web_guard.php';
+require_once __DIR__ . '/security.php';
+dc_security_apply_headers();
+dc_security_session_start();
 
 header('Content-Type: application/json');
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
@@ -277,6 +279,7 @@ echo json_encode([
     'vocoder_status' => $vocoderStatus,
     'display_timezone' => $tzName,
     'service_control_verified' => false,
+    'can_restart_services' => dc_security_is_authenticated(),
     'adapter_name' => $activeAdapter,
     'debug_private_audio_link' => $abinfo['_runtime']['private_audio_link'] ?? [],
     'debug_dmr_subscriber_lookup' => array_diff_key(dc_load_dmr_subscriber_map(), ['map' => true]),

@@ -1,5 +1,8 @@
 <?php declare(strict_types=1);
-require_once __DIR__ . '/api/runtime/_web_guard.php';
+require __DIR__ . '/api/security.php';
+dc_security_apply_headers();
+dc_security_session_start();
+$canRestartServices = dc_security_is_authenticated();
 
 if (isset($_GET['dvc_ribbon_ajax']) && $_GET['dvc_ribbon_ajax'] === '1') {
     require __DIR__ . '/includes/system_ribbon.php';
@@ -17,10 +20,16 @@ if ($dvcVersion === '') { $dvcVersion = '0.0.0'; }
   <title>DVSwitch Cockpit</title>
   <link rel="stylesheet" href="static/app.css">
 </head>
-<body>
+<body data-can-restart="<?= $canRestartServices ? '1' : '0' ?>">
   <header class="top-header">
     <div class="title-wrap title-wrap-with-auth">
-      <div class="auth-links"><a href="logout.php">Log out</a></div>
+      <div class="auth-links">
+        <?php if ($canRestartServices) { ?>
+          <a href="logout.php">Log out</a>
+        <?php } else { ?>
+          <a href="login.php">Sign in</a><span class="auth-guest-hint"> for restarts</span>
+        <?php } ?>
+      </div>
       <h1 class="app-title">DVSwitch Cockpit <a id="update-bolt" class="update-bolt" href="https://github.com/TerryClaiborne/dvswitch-cockpit" target="_blank" rel="noopener noreferrer" data-current-version="<?= htmlspecialchars($dvcVersion, ENT_QUOTES) ?>" title="" aria-label="DVSwitch Cockpit update available">⚡</a></h1>
       <p>Modern dashboard for AllStarLink 3 / DVSwitch</p>
     </div>
@@ -85,12 +94,15 @@ if ($dvcVersion === '') { $dvcVersion = '0.0.0'; }
           <div class="service-pill card-dark"><span>Source File</span><span class="stop-text" id="left-source">--</span></div>
         </div>
 
+        <?php if (!$canRestartServices) { ?>
+        <p class="service-login-hint" id="service-login-hint">Service restarts require <a href="login.php">sign in</a>.</p>
+        <?php } ?>
         <div class="control-buttons vertical">
-          <button class="action-btn" data-service-action="restart" data-service-name="analog_bridge">Restart Analog Bridge</button>
-          <button class="action-btn" data-service-action="restart" data-service-name="mmdvm_bridge">Restart MMDVM Bridge</button>
-          <button class="action-btn" data-service-action="restart" data-service-name="both">Restart Analog + MMDVM</button>
+          <button class="action-btn" type="button" data-service-action="restart" data-service-name="analog_bridge"<?= $canRestartServices ? '' : ' disabled' ?>>Restart Analog Bridge</button>
+          <button class="action-btn" type="button" data-service-action="restart" data-service-name="mmdvm_bridge"<?= $canRestartServices ? '' : ' disabled' ?>>Restart MMDVM Bridge</button>
+          <button class="action-btn" type="button" data-service-action="restart" data-service-name="both"<?= $canRestartServices ? '' : ' disabled' ?>>Restart Analog + MMDVM</button>
         </div>
-        <div class="action-status" id="action-status">Service actions ready.</div>
+        <div class="action-status<?= $canRestartServices ? '' : ' guest-readonly' ?>" id="action-status"><?= $canRestartServices ? 'Service actions ready.' : 'View only — sign in to restart services.' ?></div>
       </aside>
 
       <section class="center-column center-column-single" style="display:flex; flex-direction:column; gap:14px;">

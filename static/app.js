@@ -105,8 +105,20 @@ function apply(d){
    status.className='action-status ok'
    status.textContent='Service control verified'
  }
+ syncServiceControls(d)
 }
-async function refresh(){try{const r=await fetch('api/runtime_status.php?_='+Date.now(),{cache:'no-store'});if(r.status===401){let loc='login.php';try{const j=await r.json();if(j&&j.login)loc=j.login}catch(e){}window.location.href=loc.startsWith('/')?loc:'login.php';return}if(!r.ok)throw new Error('runtime status unavailable');apply(await r.json())}catch(e){t('hero-title','Runtime status load failed');t('summary-line-1','Could not read live runtime sources');t('summary-line-2','(check api/runtime_status.php)')}}
+function syncServiceControls(d){
+  const can = !!d.can_restart_services
+  document.querySelectorAll('[data-service-action]').forEach(function(b){ b.disabled = !can })
+  const hint = document.getElementById('service-login-hint')
+  if(hint) hint.hidden = can
+  const st = document.getElementById('action-status')
+  if(st && !st.dataset.locked){
+    st.textContent = can ? 'Service actions ready.' : 'View only — sign in to restart services.'
+    st.className = 'action-status' + (can ? '' : ' guest-readonly')
+  }
+}
+async function refresh(){try{const r=await fetch('api/runtime_status.php?_='+Date.now(),{cache:'no-store'});if(!r.ok)throw new Error('runtime status unavailable');apply(await r.json())}catch(e){t('hero-title','Runtime status load failed');t('summary-line-1','Could not read live runtime sources');t('summary-line-2','(check api/runtime_status.php)')}}
 async function serviceAction(btn){
   const action=btn.getAttribute('data-service-action')
   const service=btn.getAttribute('data-service-name')
