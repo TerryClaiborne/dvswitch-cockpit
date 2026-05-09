@@ -29,6 +29,7 @@ if ($payload === false || @file_put_contents($path, $payload) === false) {
     exit(1);
 }
 @chmod($path, 0600);
+dc_security_fix_auth_file_web_ownership($path);
 
 fwrite(STDOUT, "Initial DVSwitch Cockpit password: {$pw}\n");
 fwrite(STDOUT, "Stored in: {$path}\n");

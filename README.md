@@ -93,6 +93,8 @@ sudo php /var/www/html/dvswitch_cockpit/tools/set_cockpit_password.php 'your-new
 
 Passwords must be at least 8 characters. The hash is stored in `data/private/auth.json` (not served by the web server). If `auth.json` is missing, run `sudo php /var/www/html/dvswitch_cockpit/tools/bootstrap_auth.php` or re-run the setup script.
 
+If you change the password with `sudo php …/set_cockpit_password.php`, the installer scripts hand the file to `www-data` automatically so the web server can read it. On non-standard setups, set `COCKPIT_WEB_USER` / `COCKPIT_WEB_GROUP` when running those commands, or run `sudo chown www-data:www-data /var/www/html/dvswitch_cockpit/data/private/auth.json`.
+
 ---
 
 ## 🔄 Update

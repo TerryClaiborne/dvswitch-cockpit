@@ -185,6 +185,11 @@ if [[ ! -f "$PRIVATE_DIR/auth.json" ]] && [[ -f "$DEST_DIR/tools/bootstrap_auth.
   php "$DEST_DIR/tools/bootstrap_auth.php" || echo "Warning: could not run bootstrap_auth.php; create $PRIVATE_DIR/auth.json manually." >&2
 fi
 
+if [[ -f "$PRIVATE_DIR/auth.json" ]] && id "$WEB_USER" >/dev/null 2>&1; then
+  chown "$WEB_USER:$WEB_GROUP" "$PRIVATE_DIR/auth.json" || true
+  chmod 0600 "$PRIVATE_DIR/auth.json" || true
+fi
+
 find "$DEST_DIR" -type d -not -path "$CACHE_DIR" -not -path "$CACHE_DIR/*" -not -path "$PRIVATE_DIR" -not -path "$PRIVATE_DIR/*" -exec chmod 0755 {} +
 find "$DEST_DIR" -type f -not -path "$CACHE_DIR/*" -exec chmod 0644 {} +
 chmod 0755 "$DEST_DIR/setup_dvswitch_cockpit.sh" 2>/dev/null || true

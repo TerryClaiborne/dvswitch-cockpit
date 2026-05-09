@@ -28,6 +28,25 @@ function dc_security_auth_config_path(): string {
     return dc_security_private_dir() . '/auth.json';
 }
 
+/**
+ * After writing auth.json as root (sudo), give ownership to the web user so PHP can read it.
+ * Override with COCKPIT_WEB_USER / COCKPIT_WEB_GROUP (same idea as setup_dvswitch_cockpit.sh).
+ */
+function dc_security_fix_auth_file_web_ownership(string $path): void {
+    if ($path === '' || !is_file($path)) {
+        return;
+    }
+    $root = function_exists('posix_geteuid')
+        ? posix_geteuid() === 0
+        : trim((string) @shell_exec('id -u')) === '0';
+    if (!$root) {
+        return;
+    }
+    $user = getenv('COCKPIT_WEB_USER') ?: 'www-data';
+    $group = getenv('COCKPIT_WEB_GROUP') ?: $user;
+    @exec('/bin/chown ' . escapeshellarg($user) . ':' . escapeshellarg($group) . ' ' . escapeshellarg($path) . ' 2>/dev/null');
+}
+
 function dc_security_cookie_path(): string {
     static $cached = null;
     if ($cached !== null) {
