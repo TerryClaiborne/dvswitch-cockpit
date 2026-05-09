@@ -2,7 +2,7 @@ DirectoryIndex index.php index.html
 Options -Indexes
 
 <IfModule mod_authz_core.c>
-  Require ip 127.0.0.1 ::1 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16 169.254.0.0/16 100.64.0.0/10 fc00::/7 fe80::/10
+  Require all granted
 </IfModule>
 
 <FilesMatch "(^\.|~$|\.(bak|old|orig|tmp|swp|swo|log|zip|tar|tgz|gz|patch|b64|ini|cfg|yml|yaml|csv|sqlite|db|md|txt|sh)$)">
@@ -19,5 +19,5 @@ Options -Indexes
 
 <IfModule mod_rewrite.c>
   RewriteEngine On
-  RewriteRule (^|/)(\.git|\.github|docs|systemd|tools|templates|includes|api/runtime|data/cache)(/|$) - [F,L]
+  RewriteRule (^|/)(\.git|\.github|docs|systemd|tools|templates|includes|api/runtime|data/cache|data/private)(/|$) - [F,L]
 </IfModule>

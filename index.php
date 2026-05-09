@@ -1,6 +1,5 @@
 <?php declare(strict_types=1);
-require __DIR__ . '/api/security.php';
-dc_security_require_trusted_client();
+require_once __DIR__ . '/api/runtime/_web_guard.php';
 
 if (isset($_GET['dvc_ribbon_ajax']) && $_GET['dvc_ribbon_ajax'] === '1') {
     require __DIR__ . '/includes/system_ribbon.php';
@@ -20,7 +19,8 @@ if ($dvcVersion === '') { $dvcVersion = '0.0.0'; }
 </head>
 <body>
   <header class="top-header">
-    <div class="title-wrap">
+    <div class="title-wrap title-wrap-with-auth">
+      <div class="auth-links"><a href="logout.php">Log out</a></div>
       <h1 class="app-title">DVSwitch Cockpit <a id="update-bolt" class="update-bolt" href="https://github.com/TerryClaiborne/dvswitch-cockpit" target="_blank" rel="noopener noreferrer" data-current-version="<?= htmlspecialchars($dvcVersion, ENT_QUOTES) ?>" title="" aria-label="DVSwitch Cockpit update available">⚡</a></h1>
       <p>Modern dashboard for AllStarLink 3 / DVSwitch</p>
     </div>

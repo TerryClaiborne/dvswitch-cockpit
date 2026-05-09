@@ -5,7 +5,9 @@ body{min-height:100vh;font-family:Arial,Helvetica,sans-serif;color:var(--purple)
 
 /* slightly larger overall shell */
 .top-header{max-width:1220px;margin:4px auto 4px;background:rgba(34,20,56,.96);border:1px solid rgba(255,255,255,.06);border-radius:10px;box-shadow:0 1px 0 rgba(255,0,80,.12);overflow:hidden}
-.title-wrap{text-align:center;padding:4px 10px 2px}.title-wrap h1{margin:0;font-size:16px;color:var(--purple);line-height:1.1}.title-wrap p{margin:1px 0 0;font-size:9px;color:var(--muted)}
+.title-wrap{text-align:center;padding:4px 10px 2px}.title-wrap-with-auth{position:relative;padding:4px 52px 2px}
+.auth-links{position:absolute;top:5px;right:8px}.auth-links a{color:#c9b8e8;font-size:10px;font-weight:700;text-decoration:none}.auth-links a:hover{text-decoration:underline;color:var(--purple)}
+.title-wrap h1{margin:0;font-size:16px;color:var(--purple);line-height:1.1}.title-wrap p{margin:1px 0 0;font-size:9px;color:var(--muted)}
 .top-nav{display:flex;justify-content:center;gap:8px;padding:3px 6px;background:rgba(63,37,93,.62)}
 .nav-btn{border:none;background:transparent;color:var(--purple);font-size:10px;padding:3px 8px;border-radius:6px;font-weight:700}.nav-btn.active{background:rgba(93,56,136,.75)}
 
@@ -153,3 +155,16 @@ body{min-height:100vh;font-family:Arial,Helvetica,sans-serif;color:var(--purple)
 .update-bolt{display:none;text-decoration:none;font-size:15px;line-height:1;color:#ffd95a;filter:drop-shadow(0 0 7px rgba(255,217,90,.55));animation:updateBoltPulse 1.35s ease-in-out infinite}
 .update-bolt.update-available{display:inline-flex;align-items:center;justify-content:center}
 @keyframes updateBoltPulse{0%,100%{opacity:.72;transform:scale(1)}50%{opacity:1;transform:scale(1.12)}}
+
+.login-body{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:16px}
+.login-shell{width:100%;max-width:380px}
+.login-card{padding:22px 20px}
+.login-title{text-align:center;margin:0 0 4px;font-size:18px;color:var(--purple)}
+.login-sub{text-align:center;margin:0 0 14px;font-size:11px;color:var(--muted)}
+.login-error{text-align:center;color:#ffb3b8;font-size:11px;margin:0 0 12px}
+.login-form{display:grid;gap:10px}
+.login-label{font-size:11px;font-weight:700}
+.login-input{padding:10px 11px;border-radius:8px;border:1px solid var(--border-soft);background:rgba(12,13,28,.96);color:#eee;font-size:14px;width:100%}
+.login-submit{margin-top:4px;width:100%}
+.login-foot{text-align:center;margin:14px 0 0;font-size:9px;color:var(--muted)}
+@media (max-width:520px){.title-wrap-with-auth{padding-left:12px;padding-right:12px;padding-top:22px}.auth-links{top:3px;right:6px}}

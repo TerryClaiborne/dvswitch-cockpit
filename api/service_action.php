@@ -1,9 +1,8 @@
 <?php
 declare(strict_types=1);
 
-require __DIR__ . '/security.php';
+require_once __DIR__ . '/runtime/_web_guard.php';
 
-dc_security_require_trusted_client();
 dc_security_require_post();
 dc_security_same_origin_required();
 dc_security_require_action_header();

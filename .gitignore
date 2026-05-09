@@ -42,3 +42,6 @@ __pycache__/
 # Cockpit runtime/cache files
 data/cache/*
 !data/cache/.gitkeep
+
+data/private/*
+!data/private/.gitkeep

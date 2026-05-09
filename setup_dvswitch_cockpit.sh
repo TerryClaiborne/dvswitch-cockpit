@@ -80,6 +80,7 @@ else
       --exclude 'backup*/' \
       --exclude 'backups*/' \
       --exclude 'data/cache/' \
+      --exclude 'data/private/auth.json' \
       --exclude '*~' \
       "$SRC_DIR/" "$DEST_DIR/"
   else
@@ -106,6 +107,7 @@ else
       --exclude='backups*/' \
       --exclude='./data/cache' \
       --exclude='./data/cache/*' \
+      --exclude='./data/private/auth.json' \
       --exclude='*~' \
       -cf - .) | (cd "$DEST_DIR" && tar -xf -)
   fi
@@ -114,6 +116,10 @@ fi
 echo
 echo "[3/7] Applying ownership, permissions, and runtime cache migration..."
 mkdir -p "$CACHE_DIR"
+
+PRIVATE_DIR="$DEST_DIR/data/private"
+mkdir -p "$PRIVATE_DIR"
+chmod 0700 "$PRIVATE_DIR" 2>/dev/null || true
 
 migrate_cache_file() {
   local old_path="$1"
@@ -174,7 +180,12 @@ chmod 0755 "$DEST_DIR/data" 2>/dev/null || true
 chmod 0755 "$CACHE_DIR" || true
 find "$CACHE_DIR" -type f -exec chmod 0644 {} + 2>/dev/null || true
 
-find "$DEST_DIR" -type d -not -path "$CACHE_DIR" -not -path "$CACHE_DIR/*" -exec chmod 0755 {} +
+if [[ ! -f "$PRIVATE_DIR/auth.json" ]] && [[ -f "$DEST_DIR/tools/bootstrap_auth.php" ]]; then
+  echo "Creating login credentials (initial password printed below)..."
+  php "$DEST_DIR/tools/bootstrap_auth.php" || echo "Warning: could not run bootstrap_auth.php; create $PRIVATE_DIR/auth.json manually." >&2
+fi
+
+find "$DEST_DIR" -type d -not -path "$CACHE_DIR" -not -path "$CACHE_DIR/*" -not -path "$PRIVATE_DIR" -not -path "$PRIVATE_DIR/*" -exec chmod 0755 {} +
 find "$DEST_DIR" -type f -not -path "$CACHE_DIR/*" -exec chmod 0644 {} +
 chmod 0755 "$DEST_DIR/setup_dvswitch_cockpit.sh" 2>/dev/null || true
 
@@ -195,11 +206,11 @@ echo "[5/7] Installing Apache access-control config if available..."
 if [[ -d /etc/apache2/conf-available ]]; then
   cat > "$APACHE_CONF_FILE" <<EOF_APACHE
 # Managed by setup_dvswitch_cockpit.sh
-# DVSwitch Cockpit is intended for local/trusted network access only.
+# Access is controlled by DVSwitch Cockpit session login (see data/private/auth.json).
 <Directory "$DEST_DIR">
     Options -Indexes
     AllowOverride All
-    Require ip 127.0.0.1 ::1 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16 169.254.0.0/16 100.64.0.0/10 fc00::/7 fe80::/10
+    Require all granted
     <FilesMatch "(^\.|~$|\.(bak|old|orig|tmp|swp|swo|log|zip|tar|tgz|gz|patch|b64|ini|cfg|yml|yaml|csv|sqlite|db|md|txt|sh)$)">
         Require all denied
     </FilesMatch>
@@ -208,7 +219,7 @@ if [[ -d /etc/apache2/conf-available ]]; then
     </FilesMatch>
 </Directory>
 
-<DirectoryMatch "^$DEST_DIR/(\.git|\.github|docs|systemd|tools|templates|includes|api/runtime|data/cache)(/|$)">
+<DirectoryMatch "^$DEST_DIR/(\.git|\.github|docs|systemd|tools|templates|includes|api/runtime|data/cache|data/private)(/|$)">
     Require all denied
 </DirectoryMatch>
 EOF_APACHE
@@ -238,6 +249,8 @@ echo "Open:"
 echo "  http://<node-ip>/dvswitch_cockpit/"
 echo
 echo "Notes:"
+echo "  - Session login protects the dashboard; initial password is printed when auth.json is created."
+echo "  - Change the password with: sudo php $DEST_DIR/tools/set_cockpit_password.php 'new-password'"
 echo "  - Cockpit reads runtime state only."
 echo "  - It does not perform BM/TGIF/YSF connect or disconnect actions."
 echo "  - Restart buttons are limited to Analog_Bridge and MMDVM_Bridge."

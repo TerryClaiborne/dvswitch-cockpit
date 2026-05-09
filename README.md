@@ -23,7 +23,11 @@ It gives you one clean place to see:
 
 Simple. Clean. Read-only where it should be.
 
-`screenshot.png` is included in the repo if you want to preview the web interface.
+<p align="center">
+  <a href="screenshot.png" title="Open full-size screenshot"><img src="screenshot.png" alt="DVSwitch Cockpit dashboard screenshot" width="480"></a>
+</p>
+
+Click the image to open the full-size `screenshot.png`.
 
 ---
 
@@ -78,6 +82,16 @@ Example:
 ```text
 http://192.168.1.120/dvswitch_cockpit/
 ```
+
+The first time the installer creates login credentials, it prints an **initial password** to the terminal. Sign in at the login page; after that, the dashboard, status ribbon, and APIs load normally. Use **Log out** in the header when you are finished.
+
+To set or change the password at any time:
+
+```bash
+sudo php /var/www/html/dvswitch_cockpit/tools/set_cockpit_password.php 'your-new-password'
+```
+
+Passwords must be at least 8 characters. The hash is stored in `data/private/auth.json` (not served by the web server). If `auth.json` is missing, run `sudo php /var/www/html/dvswitch_cockpit/tools/bootstrap_auth.php` or re-run the setup script.
 
 ---
 
@@ -253,7 +267,7 @@ git status --short
 git log --oneline --decorate -5
 ```
 
-Check the API:
+Check the API (expects a **logged-in session**; without cookies you get `401` / `Authentication required`):
 
 ```bash
 curl -ksS https://127.0.0.1/dvswitch_cockpit/api/runtime_status.php
@@ -287,6 +301,7 @@ sudo ./setup_dvswitch_cockpit.sh
 ```text
 /var/www/html/dvswitch_cockpit
 /var/www/html/dvswitch_cockpit/data/cache/
+/var/www/html/dvswitch_cockpit/data/private/auth.json
 /etc/sudoers.d/dvswitch-cockpit-services
 /etc/apache2/conf-available/dvswitch-cockpit-security.conf
 ```

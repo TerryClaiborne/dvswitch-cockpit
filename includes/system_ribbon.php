@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 
+require_once dirname(__DIR__) . '/api/runtime/_web_guard.php';
+
 function dvc_apply_system_timezone(): void
 {
     $tz = trim((string) @file_get_contents('/etc/timezone'));

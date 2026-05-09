@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 
+const DC_SECURITY_SESSION_NAME = 'DVS_COCKPIT';
+
 function dc_security_is_cli(): bool {
     return PHP_SAPI === 'cli';
 }
@@ -14,6 +16,173 @@ function dc_security_cache_dir(): string {
     $dir = dirname(__DIR__) . '/data/cache';
     if (!is_dir($dir)) @mkdir($dir, 0755, true);
     return $dir;
+}
+
+function dc_security_private_dir(): string {
+    $dir = dirname(__DIR__) . '/data/private';
+    if (!is_dir($dir)) @mkdir($dir, 0700, true);
+    return $dir;
+}
+
+function dc_security_auth_config_path(): string {
+    return dc_security_private_dir() . '/auth.json';
+}
+
+function dc_security_cookie_path(): string {
+    static $cached = null;
+    if ($cached !== null) {
+        return $cached;
+    }
+    $doc = isset($_SERVER['DOCUMENT_ROOT']) ? realpath((string) $_SERVER['DOCUMENT_ROOT']) : false;
+    $root = realpath(dirname(__DIR__));
+    if ($doc && $root && str_starts_with($root, $doc)) {
+        $suffix = substr($root, strlen($doc));
+        $suffix = str_replace('\\', '/', $suffix);
+        $cached = ($suffix === '' || $suffix === '/') ? '/' : rtrim($suffix, '/') . '/';
+        return $cached;
+    }
+    $cached = '/';
+    return $cached;
+}
+
+function dc_security_session_start(): void {
+    if (session_status() === PHP_SESSION_ACTIVE) {
+        return;
+    }
+    $secure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+        || ((string) ($_SERVER['SERVER_PORT'] ?? '') === '443');
+    session_name(DC_SECURITY_SESSION_NAME);
+    session_set_cookie_params([
+        'lifetime' => 0,
+        'path' => dc_security_cookie_path(),
+        'secure' => $secure,
+        'httponly' => true,
+        'samesite' => 'Lax',
+    ]);
+    session_start();
+}
+
+function dc_security_password_hash_from_config(): ?string {
+    $path = dc_security_auth_config_path();
+    if (!is_readable($path)) {
+        return null;
+    }
+    $raw = json_decode((string) @file_get_contents($path), true);
+    if (!is_array($raw)) {
+        return null;
+    }
+    $h = $raw['password_hash'] ?? null;
+    return is_string($h) && $h !== '' ? $h : null;
+}
+
+function dc_security_is_authenticated(): bool {
+    dc_security_session_start();
+    return !empty($_SESSION['dvc_auth_ok']) && $_SESSION['dvc_auth_ok'] === true;
+}
+
+function dc_security_login_success(): void {
+    dc_security_session_start();
+    session_regenerate_id(true);
+    $_SESSION['dvc_auth_ok'] = true;
+    $_SESSION['dvc_auth_at'] = time();
+}
+
+function dc_security_logout(): void {
+    dc_security_session_start();
+    $_SESSION = [];
+    if (ini_get('session.use_cookies')) {
+        $p = session_get_cookie_params();
+        setcookie(session_name(), '', time() - 42000, $p['path'], $p['domain'], (bool) $p['secure'], (bool) $p['httponly']);
+    }
+    session_destroy();
+}
+
+function dc_security_csrf_token(): string {
+    dc_security_session_start();
+    if (empty($_SESSION['dvc_csrf']) || !is_string($_SESSION['dvc_csrf'])) {
+        $_SESSION['dvc_csrf'] = bin2hex(random_bytes(32));
+    }
+    return $_SESSION['dvc_csrf'];
+}
+
+function dc_security_csrf_verify(?string $token): bool {
+    dc_security_session_start();
+    $expect = $_SESSION['dvc_csrf'] ?? '';
+    return is_string($expect) && $expect !== '' && is_string($token) && hash_equals($expect, $token);
+}
+
+function dc_security_verify_password(string $plain): bool {
+    $hash = dc_security_password_hash_from_config();
+    if ($hash === null || $plain === '') {
+        return false;
+    }
+    return password_verify($plain, $hash);
+}
+
+function dc_security_wants_json_response(): bool {
+    $accept = strtolower((string) ($_SERVER['HTTP_ACCEPT'] ?? ''));
+    $uri = (string) ($_SERVER['REQUEST_URI'] ?? '');
+    $script = str_replace('\\', '/', (string) ($_SERVER['SCRIPT_NAME'] ?? $_SERVER['SCRIPT_FILENAME'] ?? ''));
+    return str_contains($accept, 'application/json')
+        || str_contains($uri, '/api/')
+        || str_contains($script, '/api/');
+}
+
+function dc_security_login_page_path(): string {
+    $p = rtrim(dc_security_cookie_path(), '/');
+    return ($p === '') ? '/login.php' : $p . '/login.php';
+}
+
+function dc_security_app_index_path(): string {
+    $p = rtrim(dc_security_cookie_path(), '/');
+    return ($p === '') ? '/index.php' : $p . '/index.php';
+}
+
+/** @param ?string $returnRaw rawurlencoded path from query string */
+function dc_security_safe_return_target(?string $returnRaw): string {
+    $default = dc_security_app_index_path();
+    if (!is_string($returnRaw) || $returnRaw === '') {
+        return $default;
+    }
+    $path = rawurldecode($returnRaw);
+    if (!str_starts_with($path, '/') || str_contains($path, "\0") || preg_match('/[\r\n]/', $path)) {
+        return $default;
+    }
+    if (str_starts_with($path, '//')) {
+        return $default;
+    }
+    $base = rtrim(dc_security_cookie_path(), '/');
+    if ($base !== '' && $base !== '/' && $path !== $base && !str_starts_with($path, $base . '/')) {
+        return $default;
+    }
+    return $path;
+}
+
+function dc_security_require_authenticated(): void {
+    dc_security_apply_headers();
+    if (dc_security_is_cli()) {
+        return;
+    }
+    if (dc_security_password_hash_from_config() === null) {
+        dc_security_deny('DVSwitch Cockpit login is not configured. Run the installer or tools/bootstrap_auth.php.');
+    }
+    dc_security_session_start();
+    if (dc_security_is_authenticated()) {
+        return;
+    }
+    $loginPage = dc_security_login_page_path();
+    if (dc_security_wants_json_response()) {
+        http_response_code(401);
+        header('Content-Type: application/json');
+        echo json_encode(['ok' => false, 'error' => 'Authentication required', 'login' => $loginPage]);
+        exit;
+    }
+    $uri = (string) ($_SERVER['REQUEST_URI'] ?? '/');
+    $qsPos = strpos($uri, '?');
+    $path = $qsPos === false ? $uri : substr($uri, 0, $qsPos);
+    $ret = rawurlencode($path);
+    header('Location: ' . $loginPage . '?return=' . $ret);
+    exit;
 }
 
 function dc_security_remote_addr(): string {
@@ -111,18 +280,6 @@ function dc_security_deny(string $message = 'Forbidden'): never {
         echo $message . "\n";
     }
     exit;
-}
-
-function dc_security_require_trusted_client(): void {
-    dc_security_apply_headers();
-    if (dc_security_is_cli()) return;
-    $remote = dc_security_remote_addr();
-    if (!dc_security_is_trusted_ip($remote)) {
-        dc_security_deny('DVSwitch Cockpit is restricted to local/trusted networks.');
-    }
-    if (!dc_security_forwarded_chain_is_trusted()) {
-        dc_security_deny('Untrusted forwarded client address.');
-    }
 }
 
 function dc_security_same_origin_required(): void {

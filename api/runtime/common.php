@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 
+require_once __DIR__ . '/_web_guard.php';
+
 function dc_linesf(string $file, int $limit = 800): array {
     if (!is_readable($file)) return [];
     $lines = @file($file, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);

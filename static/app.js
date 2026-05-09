@@ -106,7 +106,7 @@ function apply(d){
    status.textContent='Service control verified'
  }
 }
-async function refresh(){try{const r=await fetch('api/runtime_status.php?_='+Date.now(),{cache:'no-store'});if(!r.ok)throw new Error('runtime status unavailable');apply(await r.json())}catch(e){t('hero-title','Runtime status load failed');t('summary-line-1','Could not read live runtime sources');t('summary-line-2','(check api/runtime_status.php)')}}
+async function refresh(){try{const r=await fetch('api/runtime_status.php?_='+Date.now(),{cache:'no-store'});if(r.status===401){let loc='login.php';try{const j=await r.json();if(j&&j.login)loc=j.login}catch(e){}window.location.href=loc.startsWith('/')?loc:'login.php';return}if(!r.ok)throw new Error('runtime status unavailable');apply(await r.json())}catch(e){t('hero-title','Runtime status load failed');t('summary-line-1','Could not read live runtime sources');t('summary-line-2','(check api/runtime_status.php)')}}
 async function serviceAction(btn){
   const action=btn.getAttribute('data-service-action')
   const service=btn.getAttribute('data-service-name')
@@ -122,6 +122,7 @@ async function serviceAction(btn){
     body.set('action',action)
     body.set('service',service)
     const r=await fetch('api/service_action.php',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded','X-DVSwitch-Cockpit':'service-action'},body:body.toString()})
+    if(r.status===401){let loc='login.php';try{const j=await r.json();if(j&&j.login)loc=j.login}catch(e){}window.location.href=loc.startsWith('/')?loc:'login.php';return}
     const d=await r.json()
     if(!r.ok||!d.ok)throw new Error(d.error||'Service action failed')
     if(status){
