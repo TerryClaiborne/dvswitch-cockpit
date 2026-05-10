@@ -142,6 +142,9 @@ function dc_security_wants_json_response(): bool {
     $accept = strtolower((string) ($_SERVER['HTTP_ACCEPT'] ?? ''));
     $uri = (string) ($_SERVER['REQUEST_URI'] ?? '');
     $script = str_replace('\\', '/', (string) ($_SERVER['SCRIPT_NAME'] ?? $_SERVER['SCRIPT_FILENAME'] ?? ''));
+    if (isset($_GET['dvc_ribbon_ajax']) && (string) $_GET['dvc_ribbon_ajax'] === '1') {
+        return true;
+    }
     return str_contains($accept, 'application/json')
         || str_contains($uri, '/api/')
         || str_contains($script, '/api/');
@@ -290,7 +293,10 @@ function dc_security_deny(string $message = 'Forbidden'): never {
     $accept = strtolower((string)($_SERVER['HTTP_ACCEPT'] ?? ''));
     $uri = (string)($_SERVER['REQUEST_URI'] ?? '');
     $script = str_replace('\\', '/', (string)($_SERVER['SCRIPT_NAME'] ?? $_SERVER['SCRIPT_FILENAME'] ?? ''));
-    $isJson = str_contains($accept, 'application/json') || str_contains($uri, '/api/') || str_contains($script, '/api/');
+    $isJson = str_contains($accept, 'application/json')
+        || str_contains($uri, '/api/')
+        || str_contains($script, '/api/')
+        || (isset($_GET['dvc_ribbon_ajax']) && (string) $_GET['dvc_ribbon_ajax'] === '1');
     if ($isJson) {
         header('Content-Type: application/json');
         echo json_encode(['ok' => false, 'error' => $message]);

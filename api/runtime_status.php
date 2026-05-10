@@ -244,11 +244,13 @@ if (!function_exists('dc_runtime_dedupe_tgif_rows')) {
 
 $gatewayActivityRows = dc_runtime_dedupe_tgif_rows($gatewayActivityRows, (string)($active['target_display'] ?? ''));
 
+$logSourcePath = $activeAdapter === 'bm_stfu'
+    ? $stfuLog
+    : (($activeAdapter === 'tgif_hblink' || $activeAdapter === 'bm_stock') ? $analogLog : $bridgeFile);
+
 echo json_encode([
     'source_file' => basename($abFile),
-    'log_source' => $activeAdapter === 'bm_stfu'
-        ? $stfuLog
-        : (($activeAdapter === 'tgif_hblink' || $activeAdapter === 'bm_stock') ? $analogLog : $bridgeFile),
+    'log_source' => basename((string) $logSourcePath),
     'ab_version' => $ab['version'] ?? '--',
     'call' => dc_display_station_call((string)($dig['call'] ?? ''), (string)($dig['gw'] ?? '')),
     'gw' => $dig['gw'] ?? '--',
@@ -281,7 +283,4 @@ echo json_encode([
     'service_control_verified' => false,
     'can_restart_services' => dc_security_is_authenticated(),
     'adapter_name' => $activeAdapter,
-    'debug_private_audio_link' => $abinfo['_runtime']['private_audio_link'] ?? [],
-    'debug_dmr_subscriber_lookup' => array_diff_key(dc_load_dmr_subscriber_map(), ['map' => true]),
 ], JSON_PRETTY_PRINT);
-?>

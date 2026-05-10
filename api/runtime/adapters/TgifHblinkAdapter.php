@@ -503,14 +503,5 @@ function dc_adapter_tgif_hblink(array $analogLines, array $bridgeLines, array $a
         'left_label' => 'Current TG',
         'left_value' => $displayTarget,
         'signal_epoch' => $lastSignal,
-        'debug_target_source' => $configuredSource,
-        'debug_session_start_epoch' => $sessionStart,
-        'debug_hblink_active' => $hblinkActive,
-        'debug_active_mmdvm_mode' => $activeMmdvmPath['mode'],
-        'debug_active_mmdvm_address' => $activeMmdvmPath['address'],
-        'debug_active_mmdvm_port' => $activeMmdvmPath['port'],
-        'debug_private_link_known' => $privateLinkKnown,
-        'debug_private_link_active' => $privateLinkActive,
-        'debug_private_link_node' => $privateLinkNode,
     ];
 }

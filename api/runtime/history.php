@@ -278,7 +278,22 @@ function dc_history_display_rows(array $rows, int $limit = 16): array {
     $deduped = array_values($deduped);
     usort($deduped, fn($a, $b) => strcmp((string)($b['utc'] ?? ''), (string)($a['utc'] ?? '')));
 
+    $deduped = array_map('dc_history_sanitize_row_for_api', $deduped);
+
     return array_slice($deduped, 0, $limit);
+}
+
+/** Allowed keys for activity rows exposed via JSON (drops adapter-internal fields). */
+function dc_history_row_api_allowed_keys(): array {
+    return [
+        'time', 'utc', 'mode', 'callsign', 'callsign_display', 'dmr_id', 'qrz_url', 'callsign_lookup',
+        'target', 'src', 'dur', 'loss', 'ber',
+    ];
+}
+
+function dc_history_sanitize_row_for_api(array $row): array {
+    $allow = array_flip(dc_history_row_api_allowed_keys());
+    return array_intersect_key($row, $allow);
 }
 
 function dc_load_state_cache(): array {
