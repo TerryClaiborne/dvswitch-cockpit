@@ -243,3 +243,97 @@ body{min-height:100vh;font-family:Arial,Helvetica,sans-serif;color:var(--purple)
 .update-bolt{display:none;text-decoration:none;font-size:15px;line-height:1;color:#ffd95a;filter:drop-shadow(0 0 7px rgba(255,217,90,.55));animation:updateBoltPulse 1.35s ease-in-out infinite}
 .update-bolt.update-available{display:inline-flex;align-items:center;justify-content:center}
 @keyframes updateBoltPulse{0%,100%{opacity:.72;transform:scale(1)}50%{opacity:1;transform:scale(1.12)}}
+
+
+/* Login page for optional service-control authentication. */
+.cockpit-login-page{
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:18px;
+}
+.cockpit-login-shell{
+  width:100%;
+  max-width:380px;
+}
+.cockpit-login-card{
+  padding:18px 18px 16px;
+  text-align:center;
+}
+.cockpit-login-card h1{
+  margin:0 0 5px;
+  font-size:20px;
+  color:var(--purple);
+}
+.cockpit-login-subtitle{
+  margin:0 0 14px;
+  color:var(--muted);
+  font-size:12px;
+}
+.cockpit-login-error{
+  margin:0 0 12px;
+  padding:8px 10px;
+  border:1px solid rgba(255,90,120,.42);
+  border-radius:8px;
+  background:rgba(120,20,45,.35);
+  color:#ffd1d9;
+  font-size:12px;
+  font-weight:700;
+}
+.cockpit-login-card form{
+  display:grid;
+  gap:8px;
+  text-align:left;
+}
+.cockpit-login-card label{
+  color:#efe7ff;
+  font-size:12px;
+  font-weight:800;
+}
+.cockpit-login-card input[type="password"]{
+  width:100%;
+  min-height:38px;
+  border:1px solid rgba(154,123,233,.36);
+  border-radius:8px;
+  background:rgba(12,13,28,.92);
+  color:#fff;
+  padding:0 10px;
+  font-size:15px;
+  outline:none;
+}
+.cockpit-login-card input[type="password"]:focus{
+  border-color:rgba(180,153,245,.70);
+  box-shadow:0 0 0 2px rgba(154,123,233,.18);
+}
+.cockpit-login-card button{
+  min-height:36px;
+  border:1px solid rgba(154,123,233,.38);
+  border-radius:8px;
+  background:linear-gradient(180deg,rgba(69,41,106,.96),rgba(43,25,68,.98));
+  color:#fff;
+  font-size:13px;
+  font-weight:800;
+  cursor:pointer;
+}
+.cockpit-login-card button:hover{
+  border-color:rgba(180,153,245,.62);
+}
+.cockpit-login-note{
+  margin:12px 0 0;
+  color:var(--muted);
+  font-size:11px;
+  line-height:1.35;
+}
+.cockpit-login-back{
+  margin:10px 0 0;
+  font-size:12px;
+}
+.cockpit-login-back a{
+  color:#ddd2ff;
+  text-decoration:none;
+  font-weight:800;
+}
+.cockpit-login-back a:hover{
+  color:#fff;
+}
