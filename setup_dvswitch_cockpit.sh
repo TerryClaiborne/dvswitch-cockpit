@@ -12,10 +12,212 @@ AUTH_CONFIG_EXAMPLE_FILE="${AUTH_CONFIG_EXAMPLE_FILE:-$PRIVATE_DIR/auth.ini.exam
 APACHE_CONF_FILE="${APACHE_CONF_FILE:-/etc/apache2/conf-available/dvswitch-cockpit-security.conf}"
 WEB_USER="${WEB_USER:-www-data}"
 WEB_GROUP="${WEB_GROUP:-www-data}"
+AUTH_ACTION="normal"
+
+case "${1:-}" in
+  --set-admin-password|--auth)
+    AUTH_ACTION="set-password"
+    shift
+    ;;
+  --disable-auth)
+    AUTH_ACTION="disable-auth"
+    shift
+    ;;
+  --help|-h)
+    echo "Usage:"
+    echo "  sudo /var/www/html/dvswitch_cockpit/setup_dvswitch_cockpit.sh"
+    echo "  sudo /var/www/html/dvswitch_cockpit/setup_dvswitch_cockpit.sh --set-admin-password"
+    echo "  sudo /var/www/html/dvswitch_cockpit/setup_dvswitch_cockpit.sh --disable-auth"
+    echo
+    echo "Normal setup/update preserves existing auth settings."
+    echo "--set-admin-password changes only the DVSwitch Cockpit web login password."
+    echo "--disable-auth turns login off and keeps the saved hash."
+    exit 0
+    ;;
+  "")
+    ;;
+  *)
+    echo "[ERROR] Unknown option: ${1}" >&2
+    echo "Run: sudo /var/www/html/dvswitch_cockpit/setup_dvswitch_cockpit.sh --help" >&2
+    exit 1
+    ;;
+esac
+
+if [[ "$#" -gt 0 ]]; then
+  echo "[ERROR] Too many arguments." >&2
+  echo "Run: sudo /var/www/html/dvswitch_cockpit/setup_dvswitch_cockpit.sh --help" >&2
+  exit 1
+fi
 
 if [[ $EUID -ne 0 ]]; then
-  echo "Please run as root: sudo ./setup_dvswitch_cockpit.sh" >&2
+  echo "Please run as root: sudo /var/www/html/dvswitch_cockpit/setup_dvswitch_cockpit.sh" >&2
   exit 1
+fi
+
+ensure_auth_config_defaults() {
+  mkdir -p "$PRIVATE_DIR"
+
+  if [[ ! -f "$AUTH_CONFIG_EXAMPLE_FILE" ]]; then
+    cat > "$AUTH_CONFIG_EXAMPLE_FILE" <<'EOF_AUTH_EXAMPLE'
+; DVSwitch Cockpit optional web login
+; The real local file is data/private/auth.ini and must not be committed.
+
+DVSWITCH_COCKPIT_AUTH_ENABLED=0
+DVSWITCH_COCKPIT_ADMIN_USER="admin"
+DVSWITCH_COCKPIT_ADMIN_PASSWORD_HASH=""
+EOF_AUTH_EXAMPLE
+  fi
+
+  if [[ ! -f "$AUTH_CONFIG_FILE" ]]; then
+    cp "$AUTH_CONFIG_EXAMPLE_FILE" "$AUTH_CONFIG_FILE"
+  fi
+
+  chown root:"$WEB_GROUP" "$PRIVATE_DIR" 2>/dev/null || true
+  chmod 0750 "$PRIVATE_DIR" 2>/dev/null || true
+  chown root:"$WEB_GROUP" "$AUTH_CONFIG_FILE" 2>/dev/null || true
+  chmod 0640 "$AUTH_CONFIG_FILE" 2>/dev/null || true
+  chown root:root "$AUTH_CONFIG_EXAMPLE_FILE" 2>/dev/null || true
+  chmod 0644 "$AUTH_CONFIG_EXAMPLE_FILE" 2>/dev/null || true
+}
+
+auth_ini_get() {
+  local key="$1"
+  local default_value="${2:-}"
+
+  /usr/bin/php -r '
+    $path = $argv[1];
+    $key = $argv[2];
+    $default = $argv[3];
+    $cfg = is_readable($path) ? parse_ini_file($path, false, INI_SCANNER_RAW) : [];
+    $value = is_array($cfg) && array_key_exists($key, $cfg) ? (string)$cfg[$key] : $default;
+    $value = trim($value);
+    if (strlen($value) >= 2 && $value[0] === "\"" && substr($value, -1) === "\"") {
+        $value = substr($value, 1, -1);
+    }
+    echo $value;
+  ' "$AUTH_CONFIG_FILE" "$key" "$default_value"
+}
+
+write_auth_config() {
+  local enabled="$1"
+  local user="$2"
+  local hash="$3"
+
+  umask 027
+  cat > "$AUTH_CONFIG_FILE" <<EOF_AUTH_CONFIG
+; DVSwitch Cockpit optional web login
+; The real local file is data/private/auth.ini and must not be committed.
+
+DVSWITCH_COCKPIT_AUTH_ENABLED=$enabled
+DVSWITCH_COCKPIT_ADMIN_USER="$user"
+DVSWITCH_COCKPIT_ADMIN_PASSWORD_HASH="$hash"
+EOF_AUTH_CONFIG
+
+  chown root:"$WEB_GROUP" "$AUTH_CONFIG_FILE" 2>/dev/null || true
+  chmod 0640 "$AUTH_CONFIG_FILE" 2>/dev/null || true
+}
+
+run_auth_password_setup() {
+  ensure_auth_config_defaults
+
+  echo
+  echo "DVSwitch Cockpit Web Login Password Setup"
+  echo "========================================="
+  echo
+  echo "This changes only the DVSwitch Cockpit web login password."
+  echo "The password hash is created automatically."
+  echo "The plain password is not stored."
+  echo
+
+  local password_one=""
+  local password_two=""
+  local current_user=""
+
+  current_user="$(auth_ini_get DVSWITCH_COCKPIT_ADMIN_USER admin)"
+  [[ "$current_user" != "" ]] || current_user="admin"
+
+  read -r -s -p "New admin password: " password_one
+  echo
+
+  if [[ -z "$password_one" ]]; then
+    echo "[ERROR] Password cannot be blank for --set-admin-password. Use --disable-auth to turn login off." >&2
+    exit 1
+  fi
+
+  read -r -s -p "Confirm admin password: " password_two
+  echo
+
+  if [[ "$password_one" != "$password_two" ]]; then
+    echo "[ERROR] Passwords did not match. No changes were made." >&2
+    exit 1
+  fi
+
+  local hash=""
+  hash="$(printf '%s' "$password_one" | /usr/bin/php -r '$password = stream_get_contents(STDIN); echo password_hash($password, PASSWORD_DEFAULT);')"
+
+  if [[ -z "$hash" ]]; then
+    echo "[ERROR] Failed to create password hash. No changes were made." >&2
+    exit 1
+  fi
+
+  write_auth_config 1 "$current_user" "$hash"
+
+  unset password_one password_two
+
+  echo
+  echo "[OK] Web login enabled."
+  echo "[OK] Password hash saved to data/private/auth.ini."
+  echo
+  echo "Next steps:"
+  echo "1. Open /dvswitch_cockpit/ in your browser."
+  echo "2. Click Login."
+  echo "3. Enter the password you just set."
+  echo
+  echo "Notes:"
+  echo "- The plain password was not stored."
+  echo "- Running sudo /var/www/html/dvswitch_cockpit/setup_dvswitch_cockpit.sh normally will not change this password."
+  echo "- To disable login later, run: sudo /var/www/html/dvswitch_cockpit/setup_dvswitch_cockpit.sh --disable-auth"
+}
+
+run_auth_disable() {
+  ensure_auth_config_defaults
+
+  local current_user=""
+  local current_hash=""
+
+  current_user="$(auth_ini_get DVSWITCH_COCKPIT_ADMIN_USER admin)"
+  current_hash="$(auth_ini_get DVSWITCH_COCKPIT_ADMIN_PASSWORD_HASH "")"
+  [[ "$current_user" != "" ]] || current_user="admin"
+
+  write_auth_config 0 "$current_user" "$current_hash"
+
+  echo
+  echo "DVSwitch Cockpit Web Login Disable"
+  echo "=================================="
+  echo
+  echo "[OK] Web login disabled."
+  if [[ "$current_hash" != "" ]]; then
+    echo "[OK] Existing password hash was kept."
+  else
+    echo "[OK] No password hash was set."
+  fi
+  echo
+  echo "Next steps:"
+  echo "1. Open /dvswitch_cockpit/ in your browser."
+  echo "2. DVSwitch Cockpit should show No Login / Normal mode."
+  echo
+  echo "To re-enable login later:"
+  echo "- Run sudo /var/www/html/dvswitch_cockpit/setup_dvswitch_cockpit.sh --set-admin-password"
+}
+
+if [[ "$AUTH_ACTION" == "set-password" ]]; then
+  run_auth_password_setup
+  exit 0
+fi
+
+if [[ "$AUTH_ACTION" == "disable-auth" ]]; then
+  run_auth_disable
+  exit 0
 fi
 
 echo "============================================================"
@@ -248,7 +450,7 @@ if [[ -d /etc/apache2/conf-available ]]; then
     </FilesMatch>
 </Directory>
 
-<DirectoryMatch "^$DEST_DIR/(\.git|\.github|docs|systemd|tools|templates|includes|api/runtime|data/cache)(/|$)">
+<DirectoryMatch "^$DEST_DIR/(\.git|\.github|docs|systemd|tools|templates|includes|api/runtime|data/cache|data/private)(/|$)">
     Require all denied
 </DirectoryMatch>
 EOF_APACHE
@@ -284,6 +486,9 @@ echo "  - It does not perform BM/TGIF/YSF connect or disconnect actions."
 echo "  - Restart buttons are limited to Analog_Bridge and MMDVM_Bridge."
 echo "  - DMR callsign lookup uses the existing DVSwitch subscriber database when available."
 echo "  - Optional web login config is created disabled by default."
+echo "  - Normal setup/update preserves existing web login settings."
+echo "  - To set/change the web login password, run: sudo /var/www/html/dvswitch_cockpit/setup_dvswitch_cockpit.sh --set-admin-password"
+echo "  - To disable web login and keep the saved hash, run: sudo /var/www/html/dvswitch_cockpit/setup_dvswitch_cockpit.sh --disable-auth"
 echo "  - A last-known-good subscriber fallback is kept in $CACHE_DIR when possible."
 echo
 echo "Setup complete."
