@@ -9,6 +9,96 @@ body{min-height:100vh;font-family:Arial,Helvetica,sans-serif;color:var(--purple)
 .top-nav{display:flex;justify-content:center;gap:8px;padding:3px 6px;background:rgba(63,37,93,.62)}
 .nav-btn{border:none;background:transparent;color:var(--purple);font-size:10px;padding:3px 8px;border-radius:6px;font-weight:700}.nav-btn.active{background:rgba(93,56,136,.75)}
 
+/* Optional auth status: compact, same header line, right side. */
+.title-wrap-auth{
+  position:relative;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  min-height:38px;
+  padding:4px 138px 3px;
+}
+.title-center{
+  text-align:center;
+  min-width:0;
+}
+.cockpit-auth-status{
+  position:absolute;
+  right:10px;
+  top:50%;
+  transform:translateY(-50%);
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:5px;
+  white-space:nowrap;
+  font-size:9px;
+  line-height:1;
+}
+.cockpit-auth-pill{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-height:18px;
+  padding:0 8px;
+  border-radius:999px;
+  border:1px solid rgba(154,123,233,.26);
+  background:rgba(28,19,45,.78);
+  color:#ddd2ff;
+  font-weight:800;
+}
+.cockpit-auth-pill-normal{
+  border-color:rgba(114,255,114,.24);
+  color:#bcffbc;
+}
+.cockpit-auth-pill-view-only{
+  border-color:rgba(255,217,90,.30);
+  color:#ffe59a;
+}
+.cockpit-auth-pill-signed-in{
+  border-color:rgba(114,255,114,.34);
+  color:#9dff9d;
+}
+.cockpit-auth-link{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-height:18px;
+  padding:0 8px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.08);
+  background:rgba(12,13,28,.72);
+  color:#d8ccff;
+  text-decoration:none;
+  font-weight:800;
+}
+.cockpit-auth-link:hover{
+  border-color:rgba(180,153,245,.42);
+  color:#fff;
+}
+.cockpit-auth-link-muted{
+  opacity:.72;
+  cursor:default;
+}
+.action-btn.view-only-disabled,
+.action-btn:disabled.view-only-disabled{
+  opacity:.46;
+  cursor:not-allowed;
+  filter:saturate(.72);
+}
+@media (max-width:760px){
+  .title-wrap-auth{
+    padding:5px 8px;
+    flex-direction:column;
+    gap:4px;
+  }
+  .cockpit-auth-status{
+    position:static;
+    transform:none;
+  }
+}
+
+
 .app-shell{padding:2px 6px 0;max-width:1220px;margin:0 auto}
 .panel{background:linear-gradient(180deg,var(--panel-top),var(--panel-bot));border:1px solid var(--border);border-radius:11px;box-shadow:0 0 7px rgba(255,0,80,.11),inset 0 0 0 1px rgba(166,126,250,.06)}
 .card-dark{background:linear-gradient(180deg,rgba(12,13,28,.96),rgba(10,10,20,.98));border:1px solid var(--border-soft);border-radius:9px}

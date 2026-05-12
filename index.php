@@ -20,9 +20,16 @@ if ($dvcVersion === '') { $dvcVersion = '0.0.0'; }
 </head>
 <body>
   <header class="top-header">
-    <div class="title-wrap">
-      <h1 class="app-title">DVSwitch Cockpit <a id="update-bolt" class="update-bolt" href="https://github.com/TerryClaiborne/dvswitch-cockpit" target="_blank" rel="noopener noreferrer" data-current-version="<?= htmlspecialchars($dvcVersion, ENT_QUOTES) ?>" title="" aria-label="DVSwitch Cockpit update available">⚡</a></h1>
-      <p>Modern dashboard for AllStarLink 3 / DVSwitch</p>
+    <div class="title-wrap title-wrap-auth">
+      <div class="title-center">
+        <h1 class="app-title">DVSwitch Cockpit <a id="update-bolt" class="update-bolt" href="https://github.com/TerryClaiborne/dvswitch-cockpit" target="_blank" rel="noopener noreferrer" data-current-version="<?= htmlspecialchars($dvcVersion, ENT_QUOTES) ?>" title="" aria-label="DVSwitch Cockpit update available">⚡</a></h1>
+        <p>Modern dashboard for AllStarLink 3 / DVSwitch</p>
+      </div>
+
+      <div class="cockpit-auth-status" id="cockpit-auth-status" data-auth-state="normal">
+        <span class="cockpit-auth-pill cockpit-auth-pill-normal">No Login</span>
+        <span class="cockpit-auth-link cockpit-auth-link-muted">Normal</span>
+      </div>
     </div>
   </header>
 

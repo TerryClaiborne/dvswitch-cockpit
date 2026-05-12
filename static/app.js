@@ -1,4 +1,5 @@
 (function(){
+const cockpitState={authEnabled:false,loggedIn:true,canRestartServices:true,csrfToken:''}
 function t(i,v){const e=document.getElementById(i);if(e)e.textContent=v}
 function w(i,p){const e=document.getElementById(i);if(e)e.style.width=p+'%'}
 function s(x){return String(x??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
@@ -55,6 +56,44 @@ function durationCell(r){
 }
 function table(id,rows){const b=document.querySelector('#'+id+' tbody');if(!b)return;b.innerHTML=!Array.isArray(rows)||!rows.length?'<tr><td colspan="7">No activity available</td></tr>':rows.map(r=>`<tr class="activity-row ${modeClass(r.mode)}"><td>${s(r.time||'--')}</td><td>${modeCell(r)}</td><td>${callsignCell(r)}</td><td>${targetCell(r)}</td><td>${s(r.src||'--')}</td><td class="duration-cell">${durationCell(r)}</td><td>${qualityCell(r)}</td></tr>`).join('')}
 function recent(lines){const box=document.getElementById('recent-log');if(!box)return;box.innerHTML=!Array.isArray(lines)||!lines.length?'<div>No recent events</div>':lines.map(line=>{const c=/warning|timeout|failed|not found/i.test(line)?'warn':(/login success|Begin TX|mode ->/i.test(line)?'active':'');return `<div class="${c}">${s(line)}</div>`}).join('')}
+
+function updateAuthHeader(auth){
+  const box=document.getElementById('cockpit-auth-status')
+  if(!box)return
+  const enabled=!!(auth&&auth.enabled)
+  const loggedIn=!!(auth&&auth.logged_in)
+  if(!enabled){
+    box.dataset.authState='normal'
+    box.innerHTML='<span class="cockpit-auth-pill cockpit-auth-pill-normal">No Login</span><span class="cockpit-auth-link cockpit-auth-link-muted">Normal</span>'
+    return
+  }
+  if(loggedIn){
+    box.dataset.authState='signed-in'
+    box.innerHTML='<span class="cockpit-auth-pill cockpit-auth-pill-signed-in">Signed In</span><a class="cockpit-auth-link" href="logout.php">Logout</a>'
+    return
+  }
+  box.dataset.authState='view-only'
+  box.innerHTML='<span class="cockpit-auth-pill cockpit-auth-pill-view-only">View Only</span><a class="cockpit-auth-link" href="login.php">Login</a>'
+}
+function updateServiceButtonState(d){
+  const auth=d&&d.auth?d.auth:{}
+  cockpitState.authEnabled=!!auth.enabled
+  cockpitState.loggedIn=!cockpitState.authEnabled||!!auth.logged_in
+  cockpitState.canRestartServices=d&&Object.prototype.hasOwnProperty.call(d,'can_restart_services')?!!d.can_restart_services:true
+  cockpitState.csrfToken=String(auth.csrf_token||'')
+  updateAuthHeader(auth)
+  document.querySelectorAll('[data-service-action]').forEach(btn=>{
+    const disabled=!cockpitState.canRestartServices
+    btn.disabled=disabled
+    btn.classList.toggle('view-only-disabled',disabled)
+    btn.title=disabled?'Login required to restart DVSwitch services':''
+  })
+  const status=document.getElementById('action-status')
+  if(status&&!status.dataset.locked&&cockpitState.authEnabled&&!cockpitState.canRestartServices){
+    status.className='action-status'
+    status.textContent='View Only - Login required for service restarts.'
+  }
+}
 function stateLabel(provider, wanted, connectionState){return provider===wanted && connectionState==='Connected' ? 'Active' : 'Idle'}
 function apply(d){
  t('hero-title',`${d.call||'--'} / RPT ${d.rpt||'--'} / GW ${d.gw||'--'}`)
@@ -111,6 +150,13 @@ async function serviceAction(btn){
   const action=btn.getAttribute('data-service-action')
   const service=btn.getAttribute('data-service-name')
   const status=document.getElementById('action-status')
+  if(!cockpitState.canRestartServices){
+    if(status){
+      status.className='action-status err'
+      status.textContent='LOGIN REQUIRED - SIGN IN TO CONTROL DVSWITCH COCKPIT'
+    }
+    return
+  }
   try{
     btn.disabled=true
     if(status){
@@ -121,7 +167,9 @@ async function serviceAction(btn){
     const body=new URLSearchParams()
     body.set('action',action)
     body.set('service',service)
-    const r=await fetch('api/service_action.php',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded','X-DVSwitch-Cockpit':'service-action'},body:body.toString()})
+    const headers={'Content-Type':'application/x-www-form-urlencoded','X-DVSwitch-Cockpit':'service-action'}
+    if(cockpitState.csrfToken)headers['X-DVSwitch-Cockpit-CSRF']=cockpitState.csrfToken
+    const r=await fetch('api/service_action.php',{method:'POST',headers:headers,body:body.toString()})
     const d=await r.json()
     if(!r.ok||!d.ok)throw new Error(d.error||'Service action failed')
     if(status){
