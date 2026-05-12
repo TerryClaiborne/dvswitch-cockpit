@@ -54,7 +54,16 @@ function durationCell(r){
   return '<span class="duration-muted">--</span>'
 }
 function table(id,rows){const b=document.querySelector('#'+id+' tbody');if(!b)return;b.innerHTML=!Array.isArray(rows)||!rows.length?'<tr><td colspan="7">No activity available</td></tr>':rows.map(r=>`<tr class="activity-row ${modeClass(r.mode)}"><td>${s(r.time||'--')}</td><td>${modeCell(r)}</td><td>${callsignCell(r)}</td><td>${targetCell(r)}</td><td>${s(r.src||'--')}</td><td class="duration-cell">${durationCell(r)}</td><td>${qualityCell(r)}</td></tr>`).join('')}
-function recent(lines){const box=document.getElementById('recent-log');if(!box)return;box.innerHTML=!Array.isArray(lines)||!lines.length?'<div>No recent events</div>':lines.map(line=>{const c=/warning|timeout|failed|not found/i.test(line)?'warn':(/login success|Begin TX|mode ->/i.test(line)?'active':'');return `<div class="${c}">${s(line)}</div>`}).join('')}
+function recent(lines){
+  const box=document.getElementById('recent-log')
+  if(!box)return
+  const pxFromBottom=box.scrollHeight-box.scrollTop-box.clientHeight
+  const followTail=pxFromBottom<48
+  box.innerHTML=!Array.isArray(lines)||!lines.length?'<div>No recent events</div>':lines.map(line=>{const c=/warning|timeout|failed|not found/i.test(line)?'warn':(/login success|Begin TX|mode ->/i.test(line)?'active':'');return `<div class="${c}">${s(line)}</div>`}).join('')
+  if(!followTail)return
+  const snap=function(){box.scrollTop=box.scrollHeight}
+  requestAnimationFrame(function(){requestAnimationFrame(snap)})
+}
 function stateLabel(provider, wanted, connectionState){return provider===wanted && connectionState==='Connected' ? 'Active' : 'Idle'}
 function apply(d){
  t('hero-title',`${d.call||'--'} / RPT ${d.rpt||'--'} / GW ${d.gw||'--'}`)
