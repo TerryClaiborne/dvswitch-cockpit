@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 
+const DC_SECURITY_SESSION_NAME = 'DVS_COCKPIT';
+
 function dc_security_is_cli(): bool {
     return PHP_SAPI === 'cli';
 }
@@ -14,6 +16,232 @@ function dc_security_cache_dir(): string {
     $dir = dirname(__DIR__) . '/data/cache';
     if (!is_dir($dir)) @mkdir($dir, 0755, true);
     return $dir;
+}
+
+function dc_security_private_dir(): string {
+    $dir = dirname(__DIR__) . '/data/private';
+    if (!is_dir($dir)) @mkdir($dir, 0750, true);
+    return $dir;
+}
+
+function dc_security_auth_config_path(): string {
+    return dc_security_private_dir() . '/auth.ini';
+}
+
+function dc_security_parse_bool(mixed $value): bool {
+    $text = strtolower(trim((string)$value));
+    return in_array($text, ['1', 'true', 'yes', 'on'], true);
+}
+
+function dc_security_auth_config(): array {
+    static $config = null;
+
+    if ($config !== null) {
+        return $config;
+    }
+
+    $defaults = [
+        'DVSWITCH_COCKPIT_AUTH_ENABLED' => '0',
+        'DVSWITCH_COCKPIT_ADMIN_USER' => 'admin',
+        'DVSWITCH_COCKPIT_ADMIN_PASSWORD_HASH' => '',
+    ];
+
+    $path = dc_security_auth_config_path();
+
+    if (!is_readable($path)) {
+        $config = $defaults;
+        return $config;
+    }
+
+    $parsed = @parse_ini_file($path, false, INI_SCANNER_RAW);
+    if (!is_array($parsed)) {
+        $config = $defaults;
+        return $config;
+    }
+
+    $config = array_merge($defaults, $parsed);
+    return $config;
+}
+
+function dc_security_auth_enabled(): bool {
+    $config = dc_security_auth_config();
+    return dc_security_parse_bool($config['DVSWITCH_COCKPIT_AUTH_ENABLED'] ?? '0');
+}
+
+function dc_security_admin_user(): string {
+    $config = dc_security_auth_config();
+    $user = trim((string)($config['DVSWITCH_COCKPIT_ADMIN_USER'] ?? 'admin'));
+    return $user !== '' ? $user : 'admin';
+}
+
+function dc_security_admin_password_hash(): string {
+    $config = dc_security_auth_config();
+    return trim((string)($config['DVSWITCH_COCKPIT_ADMIN_PASSWORD_HASH'] ?? ''));
+}
+
+function dc_security_https_active(): bool {
+    if (!empty($_SERVER['HTTPS']) && strtolower((string)$_SERVER['HTTPS']) !== 'off') {
+        return true;
+    }
+
+    if ((string)($_SERVER['SERVER_PORT'] ?? '') === '443') {
+        return true;
+    }
+
+    $forwardedProto = strtolower(trim((string)($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '')));
+    if ($forwardedProto !== '') {
+        foreach (explode(',', $forwardedProto) as $proto) {
+            if (trim($proto) === 'https') {
+                return true;
+            }
+        }
+    }
+
+    $forwardedSsl = strtolower(trim((string)($_SERVER['HTTP_X_FORWARDED_SSL'] ?? '')));
+    return $forwardedSsl === 'on';
+}
+
+function dc_security_cookie_path(): string {
+    static $cached = null;
+
+    if ($cached !== null) {
+        return $cached;
+    }
+
+    $docRoot = isset($_SERVER['DOCUMENT_ROOT']) ? realpath((string)$_SERVER['DOCUMENT_ROOT']) : false;
+    $appRoot = realpath(dirname(__DIR__));
+
+    if ($docRoot && $appRoot && str_starts_with($appRoot, $docRoot)) {
+        $suffix = substr($appRoot, strlen($docRoot));
+        $suffix = str_replace('\\', '/', $suffix);
+        $cached = ($suffix === '' || $suffix === '/') ? '/' : rtrim($suffix, '/') . '/';
+        return $cached;
+    }
+
+    $cached = '/';
+    return $cached;
+}
+
+function dc_security_session_start(): void {
+    if (dc_security_is_cli()) {
+        return;
+    }
+
+    if (session_status() === PHP_SESSION_ACTIVE) {
+        return;
+    }
+
+    session_name(DC_SECURITY_SESSION_NAME);
+    session_set_cookie_params([
+        'lifetime' => 0,
+        'path' => dc_security_cookie_path(),
+        'secure' => dc_security_https_active(),
+        'httponly' => true,
+        'samesite' => 'Lax',
+    ]);
+
+    @session_start();
+}
+
+function dc_security_is_authenticated(): bool {
+    if (!dc_security_auth_enabled()) {
+        return true;
+    }
+
+    dc_security_session_start();
+    return !empty($_SESSION['dvc_auth_ok']) && $_SESSION['dvc_auth_ok'] === true;
+}
+
+function dc_security_login_success(): void {
+    dc_security_session_start();
+    session_regenerate_id(true);
+    $_SESSION['dvc_auth_ok'] = true;
+    $_SESSION['dvc_auth_at'] = time();
+}
+
+function dc_security_logout(): void {
+    dc_security_session_start();
+
+    $_SESSION = [];
+
+    if (ini_get('session.use_cookies')) {
+        $params = session_get_cookie_params();
+        setcookie(
+            session_name(),
+            '',
+            time() - 42000,
+            $params['path'] ?? '/',
+            $params['domain'] ?? '',
+            (bool)($params['secure'] ?? false),
+            (bool)($params['httponly'] ?? true)
+        );
+    }
+
+    session_destroy();
+}
+
+function dc_security_csrf_token(): string {
+    dc_security_session_start();
+
+    if (empty($_SESSION['dvc_csrf_token']) || !is_string($_SESSION['dvc_csrf_token'])) {
+        $_SESSION['dvc_csrf_token'] = bin2hex(random_bytes(32));
+    }
+
+    return $_SESSION['dvc_csrf_token'];
+}
+
+function dc_security_request_csrf_token(): string {
+    $header = dc_security_header_value('X-DVSwitch-Cockpit-CSRF');
+    if ($header !== '') {
+        return $header;
+    }
+
+    return trim((string)($_POST['csrf_token'] ?? ''));
+}
+
+function dc_security_require_csrf(): void {
+    if (dc_security_is_cli()) {
+        return;
+    }
+
+    dc_security_session_start();
+
+    $expected = (string)($_SESSION['dvc_csrf_token'] ?? '');
+    $actual = dc_security_request_csrf_token();
+
+    if ($expected === '' || $actual === '' || !hash_equals($expected, $actual)) {
+        dc_security_deny('CSRF validation failed.');
+    }
+}
+
+function dc_security_auth_status(): array {
+    $enabled = dc_security_auth_enabled();
+
+    return [
+        'enabled' => $enabled,
+        'logged_in' => !$enabled || dc_security_is_authenticated(),
+        'can_restart_services' => !$enabled || dc_security_is_authenticated(),
+        'admin_user' => dc_security_admin_user(),
+        'csrf_token' => $enabled ? dc_security_csrf_token() : '',
+    ];
+}
+
+function dc_security_require_authenticated(): void {
+    if (!dc_security_auth_enabled()) {
+        return;
+    }
+
+    if (!dc_security_is_authenticated()) {
+        dc_security_apply_headers();
+        http_response_code(401);
+        header('Content-Type: application/json');
+        echo json_encode([
+            'ok' => false,
+            'error' => 'Authentication required',
+            'auth_required' => true,
+        ]);
+        exit;
+    }
 }
 
 function dc_security_remote_addr(): string {
