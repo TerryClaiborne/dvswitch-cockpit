@@ -1,41 +1,46 @@
-dvswitch_cockpit/
-|-- api/
-|   |-- runtime/
-|   |   |-- adapters/
-|   |   |   |-- BmStfuAdapter.php
-|   |   |   |-- BmStockAdapter.php
-|   |   |   |-- DstarAdapter.php
-|   |   |   |-- GenericAdapter.php
-|   |   |   |-- TgifHblinkAdapter.php
-|   |   |   `-- YsfAdapter.php
-|   |   |-- common.php
-|   |   |-- history.php
-|   |   `-- resolver.php
-|   |-- runtime_status.php
-|   |-- security.php
-|   `-- service_action.php
-|-- data/
-|   `-- cache/
-|       `-- .gitkeep
-|-- docs/
-|   |-- BACKEND_PLAN.md
-|   |-- GITHUB_READY.md
-|   |-- INSTALL.md
-|   |-- PROJECT_NOTES.md
-|   `-- RECOVERY_NOTES.md
-|-- includes/
-|   `-- system_ribbon.php
-|-- static/
-|   |-- app.css
-|   `-- app.js
-|-- systemd/
-|   `-- sudoers.dvswitch-cockpit-example
+.
 |-- .gitignore
 |-- .htaccess
 |-- index.html
 |-- index.php
+|-- login.php
+|-- logout.php
 |-- README.md
 |-- screenshot.png
 |-- setup_dvswitch_cockpit.sh
 |-- tree.txt
-`-- VERSION
+|-- VERSION
+|-- api
+|   |-- runtime_status.php
+|   |-- security.php
+|   |-- service_action.php
+|   \-- runtime
+|       |-- common.php
+|       |-- history.php
+|       |-- resolver.php
+|       \-- adapters
+|           |-- BmStfuAdapter.php
+|           |-- BmStockAdapter.php
+|           |-- DstarAdapter.php
+|           |-- GenericAdapter.php
+|           |-- TgifHblinkAdapter.php
+|           \-- YsfAdapter.php
+|-- data
+|   |-- cache
+|   |   \-- .gitkeep
+|   \-- private
+|       |-- .gitkeep
+|       \-- auth.ini.example
+|-- docs
+|   |-- BACKEND_PLAN.md
+|   |-- GITHUB_READY.md
+|   |-- INSTALL.md
+|   |-- PROJECT_NOTES.md
+|   \-- RECOVERY_NOTES.md
+|-- includes
+|   \-- system_ribbon.php
+|-- static
+|   |-- app.css
+|   \-- app.js
+\-- systemd
+    \-- sudoers.dvswitch-cockpit-example
