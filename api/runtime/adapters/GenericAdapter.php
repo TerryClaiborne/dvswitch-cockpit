@@ -5,6 +5,21 @@ function dc_generic_digits(string $value): string {
     return preg_replace('/\D+/', '', $value) ?? '';
 }
 
+function dc_generic_ignore_station(string $mode, string $station, string $target): bool {
+    $mode = strtoupper(trim($mode));
+    $station = strtoupper(trim($station));
+    $digits = dc_generic_digits($station);
+    $targetDigits = dc_generic_digits($target);
+
+    if ($targetDigits === '0') return true;
+    if ($station === '' || $station === '0') return true;
+    if (in_array($digits, ['0', '1234567'], true)) return true;
+    if (in_array($station, ['P25GATE', 'NXDNGATE'], true)) return true;
+    if ($mode === 'P25' && $digits === '10999') return true;
+
+    return false;
+}
+
 function dc_generic_local_station(array $abinfo): string {
     $dig = $abinfo['digital'] ?? [];
 
@@ -54,20 +69,61 @@ function dc_adapter_generic(array $bridgeLines, string $tzName, array $abinfo = 
     $lastSignal = 0;
     $lastIdxByModeSrc = [];
     $localStation = dc_generic_local_station($abinfo);
+    $gatewayId = trim((string)($abinfo['digital']['gw'] ?? ''));
+    $localCall = strtoupper(trim((string)($abinfo['digital']['call'] ?? '')));
 
     foreach ($bridgeLines as $line) {
         $stamp = dc_parse_log_dt($line, $tzName);
         $epoch = (int)($stamp['epoch'] ?? 0);
 
-        // Stock DVSwitch builds local/LNet rows from Begin TX lines. P25 often
-        // reports local keyups this way instead of as a normal RF receive row.
-        if (preg_match('/^\w:\s+[0-9:\-\. ]+\s+(P25|NXDN),\s+Begin TX:\s+.*?\bdst=([^\s]+).*?(?:metadata|call)=([^\s]*)/i', $line, $m)) {
+        // P25/NXDN can expose real caller identity in Analog_Bridge Begin TX
+        // lines. Use it for network rows instead of treating every Begin TX as
+        // local activity. Ignore cleanup/default rows such as TG 0 and 1234567.
+        if (preg_match('/^\w:\s+[0-9:\-\. ]+\s+(P25|NXDN),\s+Begin TX:\s+src=([0-9]+)\s+rpt=([0-9]+)\s+dst=([^\s]+).*?(?:metadata|call)=([^\s]*)/i', $line, $m)) {
             $mode = strtoupper(trim($m[1]));
-            $targetClean = dc_clean_target('TG ' . trim($m[2]));
-            $station = $localStation;
+            $srcId = trim($m[2]);
+            $dst = trim($m[4]);
+            $rawCall = strtoupper(trim($m[5]));
+            $targetDigits = dc_generic_digits($dst);
 
-            $rows[] = dc_make_row($stamp['utc'], $stamp['display'], $mode, $station, $targetClean, 'LNet');
-            $lastIdxByModeSrc[$mode . '|LNet'] = count($rows) - 1;
+            if ($targetDigits === '' || $targetDigits === '0') {
+                continue;
+            }
+
+            if (dc_generic_ignore_station($mode, $rawCall !== '' ? $rawCall : $srcId, $dst)) {
+                continue;
+            }
+
+            $placeholderCaller = in_array($srcId, ['0', '1234567'], true)
+                && ($rawCall === '' || $rawCall === '0' || $rawCall === $srcId);
+
+            $systemCaller = (
+                ($mode === 'P25' && $srcId === '10999') ||
+                in_array($rawCall, ['P25GATE', 'NXDNGATE'], true)
+            );
+
+            if ($placeholderCaller || $systemCaller) {
+                continue;
+            }
+
+            $targetClean = dc_clean_target('TG ' . $dst);
+            $isLocal = (
+                ($gatewayId !== '' && $srcId === $gatewayId) ||
+                ($localCall !== '' && $rawCall === $localCall)
+            );
+
+            $src = $isLocal ? 'LNet' : 'Net';
+            $rawStation = $rawCall !== '' ? $rawCall : $srcId;
+            $station = $isLocal
+                ? $localStation
+                : dc_generic_display_station($mode, $src, $rawStation, $targetClean, $localStation);
+
+            if ($station === '' || $station === '--' || $station === '0') {
+                continue;
+            }
+
+            $rows[] = dc_make_row($stamp['utc'], $stamp['display'], $mode, $station, $targetClean, $src);
+            $lastIdxByModeSrc[$mode . '|' . $src] = count($rows) - 1;
 
             $provider = $mode;
             $network = $mode;
@@ -96,7 +152,16 @@ function dc_adapter_generic(array $bridgeLines, string $tzName, array $abinfo = 
         if (preg_match('/^\w:\s+[0-9:\-\. ]+\s+(P25),\s+received (RF|network) .* from ([^ ]+) to (TG )?(.+)$/i', $line, $m)) {
             $src = strtoupper($m[2]) === 'NETWORK' ? 'Net' : 'LNet';
             $targetClean = dc_clean_target(($m[4] ?? '') . $m[5]);
-            $station = dc_generic_display_station('P25', $src, trim($m[3]), $targetClean, $localStation);
+            if (dc_generic_digits($targetClean) === '0') {
+                continue;
+            }
+
+            $rawStation = trim($m[3]);
+            if ($rawStation === '0' || $rawStation === '' || dc_generic_ignore_station('P25', $rawStation, $targetClean)) {
+                continue;
+            }
+
+            $station = dc_generic_display_station('P25', $src, $rawStation, $targetClean, $localStation);
 
             $rows[] = dc_make_row($stamp['utc'], $stamp['display'], 'P25', $station, $targetClean, $src);
             $lastIdxByModeSrc['P25|' . $src] = count($rows) - 1;
@@ -113,7 +178,16 @@ function dc_adapter_generic(array $bridgeLines, string $tzName, array $abinfo = 
         if (preg_match('/^\w:\s+[0-9:\-\. ]+\s+(NXDN),\s+received (RF|network) .* from ([^ ]+) to (TG )?(.+)$/i', $line, $m)) {
             $src = strtoupper($m[2]) === 'NETWORK' ? 'Net' : 'LNet';
             $targetClean = dc_clean_target(($m[4] ?? '') . $m[5]);
-            $station = dc_generic_display_station('NXDN', $src, trim($m[3]), $targetClean, $localStation);
+            if (dc_generic_digits($targetClean) === '0') {
+                continue;
+            }
+
+            $rawStation = trim($m[3]);
+            if ($rawStation === '0' || $rawStation === '' || dc_generic_ignore_station('NXDN', $rawStation, $targetClean)) {
+                continue;
+            }
+
+            $station = dc_generic_display_station('NXDN', $src, $rawStation, $targetClean, $localStation);
 
             $rows[] = dc_make_row($stamp['utc'], $stamp['display'], 'NXDN', $station, $targetClean, $src);
             $lastIdxByModeSrc['NXDN|' . $src] = count($rows) - 1;
