@@ -6,6 +6,36 @@ function dc_dstar_clean_reflector(string $value): string {
     return $value !== '' ? $value : '--';
 }
 
+
+function dc_dstar_local_calls(array $abinfo): array {
+    $calls = [];
+    $candidates = [
+        $abinfo['call'] ?? '',
+        $abinfo['digital']['call'] ?? '',
+        $abinfo['digital']['gw'] ?? '',
+        $abinfo['info']['call'] ?? '',
+    ];
+
+    foreach ($candidates as $candidate) {
+        $candidate = strtoupper(trim((string)$candidate));
+        if ($candidate === '') continue;
+        foreach (preg_split('/[^A-Z0-9]+/', $candidate) as $part) {
+            $part = strtoupper(trim($part));
+            if ($part !== '' && dc_is_callsign_like($part)) {
+                $calls[$part] = true;
+            }
+        }
+    }
+
+    return array_keys($calls);
+}
+
+function dc_dstar_is_local_call(string $call, array $localCalls): bool {
+    $call = strtoupper(trim(explode('/', $call)[0]));
+    if ($call === '') return false;
+    return in_array($call, $localCalls, true);
+}
+
 function dc_adapter_dstar(array $bridgeLines, array $abinfo, array $cache, string $tzName): array {
     $rows = [];
     $currentTarget = '';
@@ -15,6 +45,8 @@ function dc_adapter_dstar(array $bridgeLines, array $abinfo, array $cache, strin
     $lastGatewayIdx = null;
     $lastLocalIdx = null;
     $hasDisconnect = false;
+    $localCalls = dc_dstar_local_calls($abinfo);
+    $pendingDstarEot = '';
 
     foreach ($bridgeLines as $line) {
         $stamp = dc_parse_log_dt($line, $tzName);
@@ -57,6 +89,18 @@ function dc_adapter_dstar(array $bridgeLines, array $abinfo, array $cache, strin
             $via = dc_dstar_clean_reflector($m[3] ?? '');
             $target = ($via !== '--') ? $via : (($currentTarget !== '') ? $currentTarget : $to);
 
+            // MMDVM_Bridge can report the local user's D-Star audio back as a
+            // network header after the local key-up. Keep that event in Local
+            // Activity only so the same KC3KMV transmission does not appear as
+            // duplicate Gateway Activity.
+            if (dc_dstar_is_local_call($call, $localCalls)) {
+                $pendingDstarEot = 'local_self';
+                $lastHeard = $call;
+                $lastSignal = max($lastSignal, (int)$stamp['epoch']);
+                continue;
+            }
+
+            $pendingDstarEot = 'gateway';
             $rows[] = dc_make_row($stamp['utc'], $stamp['display'], 'D-Star', $call, $target, 'Net');
             $lastGatewayIdx = count($rows) - 1;
             $lastHeard = $call;
@@ -65,16 +109,16 @@ function dc_adapter_dstar(array $bridgeLines, array $abinfo, array $cache, strin
         }
 
         if (preg_match('/^\w:\s+[0-9:\-\. ]+\s+D-Star,\s+received network end of transmission,\s+([0-9.]+)\s+seconds,\s+([0-9.]+%)\s+packet loss,\s+BER:\s+([0-9.]+%)/i', $line, $m)) {
-            if ($lastGatewayIdx !== null && isset($rows[$lastGatewayIdx])) {
+            if ($pendingDstarEot === 'gateway' && $lastGatewayIdx !== null && isset($rows[$lastGatewayIdx])) {
                 $rows[$lastGatewayIdx]['dur'] = $m[1];
                 $rows[$lastGatewayIdx]['loss'] = $m[2];
                 $rows[$lastGatewayIdx]['ber'] = $m[3];
-            }
-            if ($lastLocalIdx !== null && isset($rows[$lastLocalIdx])) {
+            } elseif ($pendingDstarEot === 'local_self' && $lastLocalIdx !== null && isset($rows[$lastLocalIdx])) {
                 $rows[$lastLocalIdx]['dur'] = $m[1];
                 $rows[$lastLocalIdx]['loss'] = $m[2];
                 $rows[$lastLocalIdx]['ber'] = $m[3];
             }
+            $pendingDstarEot = '';
             $lastSignal = max($lastSignal, (int)$stamp['epoch']);
             continue;
         }

@@ -23,6 +23,8 @@
 |           |-- BmStockAdapter.php
 |           |-- DstarAdapter.php
 |           |-- GenericAdapter.php
+|           |-- NxdnAdapter.php
+|           |-- P25Adapter.php
 |           |-- TgifHblinkAdapter.php
 |           \-- YsfAdapter.php
 |-- data

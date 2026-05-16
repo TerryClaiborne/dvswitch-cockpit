@@ -99,6 +99,8 @@ function dc_resolve_active(array $abinfo, array $adapters, array &$stateCache = 
     $ysf     = $adapters['ysf']          ?? dc_idle_adapter('YSF');
     $dstar   = $adapters['dstar']        ?? dc_idle_adapter('D-Star');
     $tgif    = $adapters['tgif_hblink']  ?? dc_idle_adapter('TGIF');
+    $p25     = $adapters['p25']          ?? dc_idle_adapter('P25');
+    $nxdn    = $adapters['nxdn']         ?? dc_idle_adapter('NXDN');
     $generic = $adapters['generic']      ?? dc_idle_adapter('Idle');
 
     if ($liveMode !== 'STFU') {
@@ -138,10 +140,14 @@ function dc_resolve_active(array $abinfo, array $adapters, array &$stateCache = 
         return dc_idle_adapter('Idle');
     }
 
-    // For P25/NXDN, the active connection must follow the live AB mode/TG.
-    // Generic history rows can include background traffic from other gateways.
-    if (in_array($liveMode, ['P25', 'NXDN'], true)) {
-        return dc_resolver_live_mode_adapter($abinfo, $generic, $liveMode);
+    // For P25/NXDN, use the dedicated session-aware adapters. Generic history
+    // is intentionally not allowed to own active P25/NXDN state.
+    if ($liveMode === 'P25') {
+        return dc_adapter_is_connected($p25) ? $p25 : dc_idle_adapter('Idle');
+    }
+
+    if ($liveMode === 'NXDN') {
+        return dc_adapter_is_connected($nxdn) ? $nxdn : dc_idle_adapter('Idle');
     }
 
     if (dc_adapter_is_connected($generic)) {
