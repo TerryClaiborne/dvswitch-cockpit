@@ -28,7 +28,11 @@ $dvcAssetVersion = $dvcVersion . '-' . max(
     <div class="title-wrap title-wrap-auth">
       <div class="title-center">
         <h1 class="app-title">DVSwitch Cockpit <a id="update-bolt" class="update-bolt" href="https://github.com/TerryClaiborne/dvswitch-cockpit" target="_blank" rel="noopener noreferrer" data-current-version="<?= htmlspecialchars($dvcVersion, ENT_QUOTES) ?>" title="" aria-label="DVSwitch Cockpit update available">⚡</a></h1>
-        <p>Modern dashboard for AllStarLink 3 / DVSwitch</p>
+        <p class="app-subtitle">
+          Modern dashboard for AllStarLink 3 / DVSwitch
+          <span class="subtitle-sep">•</span>
+          <a class="repo-link" href="https://github.com/TerryClaiborne/dvswitch-cockpit" target="_blank" rel="noopener noreferrer">GitHub Repo</a>
+        </p>
       </div>
 
       <div class="cockpit-auth-status" id="cockpit-auth-status" data-auth-state="normal">
