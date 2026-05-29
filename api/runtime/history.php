@@ -141,17 +141,44 @@ function dc_history_duplicate_key(array $row): string {
     ]);
 }
 
+function dc_history_row_epoch(array $row): int {
+    $utc = trim((string)($row['utc'] ?? ''));
+    if ($utc === '') return 0;
+
+    try {
+        return (new DateTime($utc, new DateTimeZone('UTC')))->getTimestamp();
+    } catch (Throwable $e) {
+        return 0;
+    }
+}
+
+function dc_history_station_target_key(array $row): string {
+    $station = strtoupper(trim((string)($row['callsign_display'] ?? $row['callsign'] ?? '')));
+    $target = trim((string)($row['target'] ?? ''));
+    $src = strtoupper(trim((string)($row['src'] ?? '')));
+
+    return $station . '|' . $target . '|' . $src;
+}
+
 function dc_history_remove_cross_mode_duplicates(array $rows): array {
     $digitalKeys = [];
+    $tgifNearby = [];
 
     foreach ($rows as $row) {
         $mode = (string)($row['mode'] ?? '');
-        if ($mode === 'NXDN' || $mode === 'P25') {
+        if ($mode === 'NXDN' || $mode === 'P25' || $mode === 'DMR/TGIF') {
             $digitalKeys[dc_history_duplicate_key($row)] = true;
+        }
+
+        if ($mode === 'DMR/TGIF') {
+            $key = dc_history_station_target_key($row);
+            if ($key !== '||') {
+                $tgifNearby[$key][] = dc_history_row_epoch($row);
+            }
         }
     }
 
-    if (!$digitalKeys) {
+    if (!$digitalKeys && !$tgifNearby) {
         return $rows;
     }
 
@@ -161,6 +188,24 @@ function dc_history_remove_cross_mode_duplicates(array $rows): array {
         if ($mode === 'DMR/BM' && isset($digitalKeys[dc_history_duplicate_key($row)])) {
             continue;
         }
+
+        // TGIFD traffic can appear briefly as stock DMR/BM after mode handoff
+        // because Analog_Bridge is still in DMR mode. If a BM row has the same
+        // station/target/source as a nearby real DMR/TGIF row, drop the fake BM
+        // copy while preserving real BM rows such as the current BM talkgroup.
+        if ($mode === 'DMR/BM') {
+            $key = dc_history_station_target_key($row);
+            $epoch = dc_history_row_epoch($row);
+
+            if ($epoch > 0 && isset($tgifNearby[$key])) {
+                foreach ($tgifNearby[$key] as $tgifEpoch) {
+                    if ($tgifEpoch > 0 && abs($epoch - $tgifEpoch) <= 180) {
+                        continue 2;
+                    }
+                }
+            }
+        }
+
         $out[] = $row;
     }
 

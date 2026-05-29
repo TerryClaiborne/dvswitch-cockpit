@@ -4,7 +4,7 @@
 
 ✅ Built for ASL3 + DVSwitch on Debian-based systems  
 ✅ Works with normal DVSwitch installs  
-✅ Optional support for BM/STFU and TGIF/HBLink when present  
+✅ Optional support for BM/STFU and AllTune2 TGIFD when present  
 ✅ No network control logic added  
 
 DVSwitch Cockpit is a modern web dashboard for watching what your ASL3 / DVSwitch node is doing.

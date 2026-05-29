@@ -16,6 +16,7 @@ require __DIR__ . '/runtime/adapters/DstarAdapter.php';
 require __DIR__ . '/runtime/adapters/BmStfuAdapter.php';
 require __DIR__ . '/runtime/adapters/BmStockAdapter.php';
 require __DIR__ . '/runtime/adapters/TgifHblinkAdapter.php';
+require __DIR__ . '/runtime/adapters/TgifdAdapter.php';
 require __DIR__ . '/runtime/adapters/GenericAdapter.php';
 require __DIR__ . '/runtime/adapters/P25Adapter.php';
 require __DIR__ . '/runtime/adapters/NxdnAdapter.php';
@@ -57,19 +58,9 @@ $analogLines = dc_linesf($analogLog, 700);
 $stfuLog = '/var/log/STFU.log';
 $stfuLines = dc_linesf($stfuLog, 900);
 
-$hblinkService = dc_service_state_first([
-    'hblink.service',
-    'hblink3.service',
-    'tgif-hblink.service',
-    'alltune2-hblink.service',
-]);
-
 $services = [
     'analog_bridge'  => dc_service_state('analog_bridge.service'),
     'mmdvm_bridge'   => dc_service_state('mmdvm_bridge.service'),
-    'hblink'         => $hblinkService['state'],
-    'hblink_service' => $hblinkService['name'],
-    'hblink_process' => dc_process_running(['hblink', 'HBlink', 'tgif-hblink', 'alltune2-hblink']),
 ];
 
 $cache = dc_load_state_cache();
@@ -80,7 +71,6 @@ if ($liveMode !== '') {
 }
 $abinfo['_runtime'] = [
     'latest_txtg' => dc_detect_latest_txtg($analogLines),
-    'tgif_hblink_target' => dc_detect_tgif_hblink_target(),
     'private_audio_link' => dc_detect_alltune2_private_audio_link(),
 ];
 
@@ -89,12 +79,12 @@ $adapters['ysf']         = dc_adapter_ysf($bridgeLines, $abinfo, $cache, $tzName
 $adapters['dstar']       = dc_adapter_dstar($bridgeLines, $abinfo, $cache, $tzName);
 $adapters['bm_stfu']     = dc_adapter_bm_stfu($stfuLines, $abinfo, $cache, $tzName);
 $adapters['bm_stock']    = dc_adapter_bm_stock($analogLines, $abinfo, $services, $cache, $tzName);
-$adapters['tgif_hblink'] = dc_adapter_tgif_hblink($analogLines, $bridgeLines, $abinfo, $services, $tzName);
+$adapters['tgifd']        = dc_adapter_tgifd($tzName);
 $adapters['p25']         = dc_adapter_p25($analogLines, $bridgeLines, $abinfo, $cache, $tzName);
 $adapters['nxdn']        = dc_adapter_nxdn($analogLines, $bridgeLines, $abinfo, $cache, $tzName);
 $adapters['generic']     = dc_adapter_generic($bridgeLines, $tzName, $abinfo);
 
-foreach (['ysf','dstar','bm_stfu','bm_stock','tgif_hblink','p25','nxdn','generic'] as $name) {
+foreach (['ysf','dstar','bm_stfu','bm_stock','tgifd','p25','nxdn','generic'] as $name) {
     if (!isset($adapters[$name]) || !is_array($adapters[$name])) {
         $adapters[$name] = dc_idle_adapter('Idle');
     }
@@ -140,10 +130,10 @@ dc_save_state_cache([
         'target_display'   => $adapters['bm_stock']['target_display'] ?? '--',
         'last_heard'       => $adapters['bm_stock']['last_heard'] ?? '--',
     ],
-    'tgif_hblink' => [
-        'connection_state' => $adapters['tgif_hblink']['connection_state'] ?? 'Idle',
-        'target_display'   => $adapters['tgif_hblink']['target_display'] ?? '--',
-        'last_heard'       => $adapters['tgif_hblink']['last_heard'] ?? '--',
+    'tgifd' => [
+        'connection_state' => $adapters['tgifd']['connection_state'] ?? 'Idle',
+        'target_display'   => $adapters['tgifd']['target_display'] ?? '--',
+        'last_heard'       => $adapters['tgifd']['last_heard'] ?? '--',
     ],
     'p25' => [
         'connection_state' => $adapters['p25']['connection_state'] ?? 'Idle',
@@ -162,7 +152,7 @@ $historyRows = array_merge(
     is_array($adapters['dstar']['rows'] ?? null) ? $adapters['dstar']['rows'] : [],
     is_array($adapters['bm_stfu']['rows'] ?? null) ? $adapters['bm_stfu']['rows'] : [],
     is_array($adapters['bm_stock']['rows'] ?? null) ? $adapters['bm_stock']['rows'] : [],
-    is_array($adapters['tgif_hblink']['rows'] ?? null) ? $adapters['tgif_hblink']['rows'] : [],
+    is_array($adapters['tgifd']['rows'] ?? null) ? $adapters['tgifd']['rows'] : [],
     is_array($adapters['p25']['rows'] ?? null) ? $adapters['p25']['rows'] : [],
     is_array($adapters['nxdn']['rows'] ?? null) ? $adapters['nxdn']['rows'] : [],
     is_array($adapters['generic']['rows'] ?? null) ? $adapters['generic']['rows'] : []
@@ -265,7 +255,7 @@ echo json_encode([
     'source_file' => basename($abFile),
     'log_source' => $activeAdapter === 'bm_stfu'
         ? $stfuLog
-        : (($activeAdapter === 'tgif_hblink' || $activeAdapter === 'bm_stock' || $activeAdapter === 'p25' || $activeAdapter === 'nxdn') ? $analogLog : $bridgeFile),
+        : (($activeAdapter === 'bm_stock' || $activeAdapter === 'p25' || $activeAdapter === 'nxdn') ? $analogLog : $bridgeFile),
     'ab_version' => $ab['version'] ?? '--',
     'call' => dc_display_station_call((string)($dig['call'] ?? ''), (string)($dig['gw'] ?? '')),
     'gw' => $dig['gw'] ?? '--',

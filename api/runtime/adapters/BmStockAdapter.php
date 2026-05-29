@@ -20,20 +20,6 @@ function dc_adapter_bm_stock(array $analogLines, array $abinfo, array $services,
         return dc_idle_adapter('BrandMeister');
     }
 
-    // If the TGIF/HBLink sidecar is running and has a StartRef target, the DMR
-    // lane belongs to TGIF. Do not duplicate the same Analog_Bridge frames as BM.
-    $tgifRuntimeTarget = trim((string)($abinfo['_runtime']['tgif_hblink_target']['value'] ?? ''));
-    $hblinkActive = in_array(($services['hblink'] ?? ''), ['active', 'activating'], true)
-        || !empty($services['hblink_process']);
-    $hblinkLikelyOwnsDmr = $hblinkActive
-        && !$runtimeTgDisconnect
-        && $tgifRuntimeTarget !== ''
-        && ($gateway === '' || $tgifRuntimeTarget !== $gateway)
-        && ($runtimeTg === '' || $runtimeTg === $tgifRuntimeTarget || ($gateway !== '' && $runtimeTg === $gateway));
-    if ($hblinkLikelyOwnsDmr) {
-        return dc_idle_adapter('BrandMeister');
-    }
-
     foreach ($analogLines as $line) {
         $stamp = dc_parse_log_dt($line, $tzName);
         $epoch = (int)($stamp['epoch'] ?? 0);

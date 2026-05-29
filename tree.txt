@@ -1,48 +1,44 @@
-.
-|-- .gitignore
-|-- .htaccess
-|-- index.html
-|-- index.php
-|-- login.php
-|-- logout.php
-|-- README.md
-|-- screenshot.png
-|-- setup_dvswitch_cockpit.sh
-|-- tree.txt
-|-- VERSION
-|-- api
-|   |-- runtime_status.php
-|   |-- security.php
-|   |-- service_action.php
-|   \-- runtime
-|       |-- common.php
-|       |-- history.php
-|       |-- resolver.php
-|       \-- adapters
-|           |-- BmStfuAdapter.php
-|           |-- BmStockAdapter.php
-|           |-- DstarAdapter.php
-|           |-- GenericAdapter.php
-|           |-- NxdnAdapter.php
-|           |-- P25Adapter.php
-|           |-- TgifHblinkAdapter.php
-|           \-- YsfAdapter.php
-|-- data
-|   |-- cache
-|   |   \-- .gitkeep
-|   \-- private
-|       |-- .gitkeep
-|       \-- auth.ini.example
-|-- docs
-|   |-- BACKEND_PLAN.md
-|   |-- GITHUB_READY.md
-|   |-- INSTALL.md
-|   |-- PROJECT_NOTES.md
-|   \-- RECOVERY_NOTES.md
-|-- includes
-|   \-- system_ribbon.php
-|-- static
-|   |-- app.css
-|   \-- app.js
-\-- systemd
-    \-- sudoers.dvswitch-cockpit-example
+DVSwitch Cockpit release tree
+=============================
+
+Generated from the release working tree.
+Local runtime/cache/log files are intentionally excluded.
+
+.gitignore
+.htaccess
+README.md
+VERSION
+api/runtime/adapters/BmStfuAdapter.php
+api/runtime/adapters/BmStockAdapter.php
+api/runtime/adapters/DstarAdapter.php
+api/runtime/adapters/GenericAdapter.php
+api/runtime/adapters/NxdnAdapter.php
+api/runtime/adapters/P25Adapter.php
+api/runtime/adapters/TgifHblinkAdapter.php
+api/runtime/adapters/TgifdAdapter.php
+api/runtime/adapters/YsfAdapter.php
+api/runtime/common.php
+api/runtime/history.php
+api/runtime/resolver.php
+api/runtime_status.php
+api/security.php
+api/service_action.php
+data/cache/.gitkeep
+data/private/.gitkeep
+data/private/auth.ini.example
+docs/BACKEND_PLAN.md
+docs/GITHUB_READY.md
+docs/INSTALL.md
+docs/PROJECT_NOTES.md
+docs/RECOVERY_NOTES.md
+includes/system_ribbon.php
+index.html
+index.php
+login.php
+logout.php
+screenshot.png
+setup_dvswitch_cockpit.sh
+static/app.css
+static/app.js
+systemd/sudoers.dvswitch-cockpit-example
+tree.txt
