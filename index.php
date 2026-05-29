@@ -147,7 +147,7 @@ $dvcAssetVersion = $dvcVersion . '-' . max(
         <div class="recent-summary card-dark"><p id="summary-line-1">Loading runtime summary</p><p id="summary-line-2">(detecting provider)</p></div>
         <div class="network-status-grid">
           <div class="network-box card-dark net-bm"><span>BrandMeister</span><strong id="mode-bm">--</strong></div>
-          <div class="network-box card-dark net-tgif"><span>TGIF/HBLink</span><strong id="mode-tgif">--</strong></div>
+          <div class="network-box card-dark net-tgif"><span>TGIF</span><strong id="mode-tgif">--</strong></div>
           <div class="network-box card-dark net-ysf"><span>YSF</span><strong id="mode-ysf">--</strong></div>
           <div class="network-box card-dark net-dstar"><span>D-Star</span><strong id="mode-dstar">--</strong></div>
           <div class="network-box card-dark net-p25"><span>P25</span><strong id="mode-p25">--</strong></div>

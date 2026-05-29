@@ -131,7 +131,7 @@ function dvc_process_state(string $pattern): string
 
         // pgrep -af can match the shell command running this check, especially
         // when the regex appears in the command line. Do not let that make
-        // optional HBLink/STFU indicators look ON for stock systems.
+        // optional TGIF/STFU indicators look ON for stock systems.
         if (stripos($line, 'pgrep -af') !== false) continue;
         if (stripos($line, 'timeout ') !== false && stripos($line, 'bash -lc') !== false) continue;
         if (stripos($line, 'system_ribbon.php') !== false) continue;
@@ -295,7 +295,7 @@ function dvc_chip(array $initial, string $label, string $key, bool $hot = false)
 <?= dvc_chip($initial, 'Iface', 'iface') ?>
 <?= dvc_chip($initial, 'AB', 'ab', true) ?>
 <?= dvc_chip($initial, 'MB', 'mb', true) ?>
-<?= dvc_chip($initial, 'HBL', 'hblink', true) ?>
+<?= dvc_chip($initial, 'TGIF', 'hblink', true) ?>
 <?= dvc_chip($initial, 'STFU', 'stfu', true) ?>
 </div>
 </div>
