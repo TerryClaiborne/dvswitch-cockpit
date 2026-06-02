@@ -164,7 +164,7 @@ function dc_adapter_tgifd(string $tzName): array {
     $stateFile = $appDir . '/run/alltune2-tgifd.state';
     $pidFile = $appDir . '/run/alltune2-tgifd.pid';
     $cfgFile = $appDir . '/tgif/config/tgifd.ini';
-    $binNeedle = $appDir . '/tgif/build/tgifd';
+    $binNeedle = $appDir . '/tgif/bin/tgifd';
     $logFile = $appDir . '/logs/tgifd-helper.log';
 
     $state = dc_tgifd_read_state($stateFile);
