@@ -7,6 +7,6 @@
 #
 # The systemctl commands match api/service_action.php exactly.
 # The asterisk read-only command lets runtime_status.php verify whether
-# the private DVSwitch audio node is linked for TGIF/HBLink status detection.
+# the private DVSwitch audio node is linked for TGIF / AllTune2 status detection.
 
 www-data ALL=(root) NOPASSWD: /usr/bin/systemctl restart analog_bridge.service, /usr/bin/systemctl restart mmdvm_bridge.service, /usr/sbin/asterisk -rx rpt nodes *
