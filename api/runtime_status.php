@@ -15,6 +15,7 @@ require __DIR__ . '/runtime/adapters/YsfAdapter.php';
 require __DIR__ . '/runtime/adapters/DstarAdapter.php';
 require __DIR__ . '/runtime/adapters/BmStfuAdapter.php';
 require __DIR__ . '/runtime/adapters/BmStockAdapter.php';
+require __DIR__ . '/runtime/adapters/BmtdAdapter.php';
 require __DIR__ . '/runtime/adapters/TgifHblinkAdapter.php';
 require __DIR__ . '/runtime/adapters/TgifdAdapter.php';
 require __DIR__ . '/runtime/adapters/GenericAdapter.php';
@@ -55,8 +56,10 @@ if (!is_readable($analogLog)) {
 }
 $analogLines = dc_linesf($analogLog, 700);
 
-$stfuLog = '/var/log/STFU.log';
+$stfuLog = '/var/www/html/alltune2/logs/STFU.log';
 $stfuLines = dc_linesf($stfuLog, 900);
+$bmtdLog = '/var/www/html/alltune2/logs/bmtd.log';
+$tgifdLog = '/var/www/html/alltune2/logs/tgifd.log';
 
 $services = [
     'analog_bridge'  => dc_service_state('analog_bridge.service'),
@@ -79,12 +82,13 @@ $adapters['ysf']         = dc_adapter_ysf($bridgeLines, $abinfo, $cache, $tzName
 $adapters['dstar']       = dc_adapter_dstar($bridgeLines, $abinfo, $cache, $tzName);
 $adapters['bm_stfu']     = dc_adapter_bm_stfu($stfuLines, $abinfo, $cache, $tzName);
 $adapters['bm_stock']    = dc_adapter_bm_stock($analogLines, $abinfo, $services, $cache, $tzName);
+$adapters['bmtd']        = dc_adapter_bmtd($tzName);
 $adapters['tgifd']        = dc_adapter_tgifd($tzName);
 $adapters['p25']         = dc_adapter_p25($analogLines, $bridgeLines, $abinfo, $cache, $tzName);
 $adapters['nxdn']        = dc_adapter_nxdn($analogLines, $bridgeLines, $abinfo, $cache, $tzName);
 $adapters['generic']     = dc_adapter_generic($bridgeLines, $tzName, $abinfo);
 
-foreach (['ysf','dstar','bm_stfu','bm_stock','tgifd','p25','nxdn','generic'] as $name) {
+foreach (['ysf','dstar','bm_stfu','bm_stock','bmtd','tgifd','p25','nxdn','generic'] as $name) {
     if (!isset($adapters[$name]) || !is_array($adapters[$name])) {
         $adapters[$name] = dc_idle_adapter('Idle');
     }
@@ -130,6 +134,11 @@ dc_save_state_cache([
         'target_display'   => $adapters['bm_stock']['target_display'] ?? '--',
         'last_heard'       => $adapters['bm_stock']['last_heard'] ?? '--',
     ],
+    'bmtd' => [
+        'connection_state' => $adapters['bmtd']['connection_state'] ?? 'Idle',
+        'target_display'   => $adapters['bmtd']['target_display'] ?? '--',
+        'last_heard'       => $adapters['bmtd']['last_heard'] ?? '--',
+    ],
     'tgifd' => [
         'connection_state' => $adapters['tgifd']['connection_state'] ?? 'Idle',
         'target_display'   => $adapters['tgifd']['target_display'] ?? '--',
@@ -147,15 +156,26 @@ dc_save_state_cache([
     ],
 ]);
 
+$mmdvmActiveForHistory = (($services['mmdvm_bridge'] ?? 'inactive') === 'active');
+
+$genericRowsForHistory = is_array($adapters['generic']['rows'] ?? null) ? $adapters['generic']['rows'] : [];
+if (!$mmdvmActiveForHistory) {
+    $genericRowsForHistory = array_values(array_filter($genericRowsForHistory, function($r) {
+        return (string)($r['mode'] ?? '') !== 'DMR/BM'
+            && (string)($r['mode'] ?? '') !== 'DMR/TGIF';
+    }));
+}
+
 $historyRows = array_merge(
     is_array($adapters['ysf']['rows'] ?? null) ? $adapters['ysf']['rows'] : [],
     is_array($adapters['dstar']['rows'] ?? null) ? $adapters['dstar']['rows'] : [],
     is_array($adapters['bm_stfu']['rows'] ?? null) ? $adapters['bm_stfu']['rows'] : [],
-    is_array($adapters['bm_stock']['rows'] ?? null) ? $adapters['bm_stock']['rows'] : [],
+    $mmdvmActiveForHistory && is_array($adapters['bm_stock']['rows'] ?? null) ? $adapters['bm_stock']['rows'] : [],
+    is_array($adapters['bmtd']['rows'] ?? null) ? $adapters['bmtd']['rows'] : [],
     is_array($adapters['tgifd']['rows'] ?? null) ? $adapters['tgifd']['rows'] : [],
     is_array($adapters['p25']['rows'] ?? null) ? $adapters['p25']['rows'] : [],
     is_array($adapters['nxdn']['rows'] ?? null) ? $adapters['nxdn']['rows'] : [],
-    is_array($adapters['generic']['rows'] ?? null) ? $adapters['generic']['rows'] : []
+    $genericRowsForHistory
 );
 
 // Keep history persistent across mode switches. Do not reset on service-state signature drift.
@@ -191,6 +211,29 @@ $localActivityRows = array_values(array_filter($allHistoryRows, function($r) {
     $src = strtoupper((string)($r['src'] ?? ''));
     return $src === 'LNET' || $src === 'RF';
 }));
+
+if (!function_exists('dc_runtime_keep_dmr_row_for_display')) {
+    function dc_runtime_keep_dmr_row_for_display(array $r, bool $mmdvmActive): bool {
+        $mode = (string)($r['mode'] ?? '');
+        if ($mode !== 'DMR/BM' && $mode !== 'DMR/TGIF') {
+            return true;
+        }
+
+        if ($mmdvmActive) {
+            return true;
+        }
+
+        // When MMDVM_Bridge is inactive, only BMTD/TGIFD-owned DMR rows are valid.
+        // Stock/generic DMR rows can be stale Analog_Bridge/MMDVM leftovers after reboot.
+        $confidence = (string)($r['identity_confidence'] ?? '');
+        return str_starts_with($confidence, 'bmtd_')
+            || str_starts_with($confidence, 'tgifd_');
+    }
+}
+
+$mmdvmActiveForDisplay = (($services['mmdvm_bridge'] ?? 'inactive') === 'active');
+$gatewayActivityRows = array_values(array_filter($gatewayActivityRows, fn($r) => dc_runtime_keep_dmr_row_for_display($r, $mmdvmActiveForDisplay)));
+$localActivityRows = array_values(array_filter($localActivityRows, fn($r) => dc_runtime_keep_dmr_row_for_display($r, $mmdvmActiveForDisplay)));
 
 if (!function_exists('dc_runtime_tgif_row_score')) {
     function dc_runtime_tgif_row_score(array $r, string $activeTarget): int {
@@ -251,11 +294,83 @@ if (!function_exists('dc_runtime_dedupe_tgif_rows')) {
 
 $gatewayActivityRows = dc_runtime_dedupe_tgif_rows($gatewayActivityRows, (string)($active['target_display'] ?? ''));
 
+if (!function_exists('dc_runtime_row_identity_key')) {
+    function dc_runtime_row_identity_key(array $r): string {
+        return implode('|', [
+            (string)($r['utc'] ?? $r['time'] ?? ''),
+            (string)($r['mode'] ?? ''),
+            (string)($r['callsign'] ?? ''),
+            (string)($r['target'] ?? ''),
+            (string)($r['src'] ?? ''),
+            (string)($r['dur'] ?? ''),
+        ]);
+    }
+}
+
+if (!function_exists('dc_runtime_balanced_gateway_rows')) {
+    function dc_runtime_balanced_gateway_rows(array $rows, int $limit = 16, int $perDigitalNetwork = 4): array {
+        if ($limit <= 0) return [];
+
+        $bmRows = [];
+        $tgifRows = [];
+
+        foreach ($rows as $r) {
+            $mode = strtoupper((string)($r['mode'] ?? ''));
+            if ($mode === 'DMR/BM') {
+                $bmRows[] = $r;
+            } elseif ($mode === 'DMR/TGIF') {
+                $tgifRows[] = $r;
+            }
+        }
+
+        // If both BMTD and TGIFD have history, reserve a few rows for each so
+        // one active network cannot push the other completely out of the table.
+        if (empty($bmRows) || empty($tgifRows)) {
+            return array_slice($rows, 0, $limit);
+        }
+
+        $out = [];
+        $seen = [];
+
+        $add = function(array $r) use (&$out, &$seen, $limit): void {
+            if (count($out) >= $limit) return;
+            $key = dc_runtime_row_identity_key($r);
+            if (isset($seen[$key])) return;
+            $seen[$key] = true;
+            $out[] = $r;
+        };
+
+        foreach (array_slice($bmRows, 0, $perDigitalNetwork) as $r) {
+            $add($r);
+        }
+
+        foreach (array_slice($tgifRows, 0, $perDigitalNetwork) as $r) {
+            $add($r);
+        }
+
+        foreach ($rows as $r) {
+            $add($r);
+        }
+
+        usort($out, function($a, $b) {
+            return strcmp((string)($b['utc'] ?? $b['time'] ?? ''), (string)($a['utc'] ?? $a['time'] ?? ''));
+        });
+
+        return array_slice($out, 0, $limit);
+    }
+}
+
+$gatewayActivityRows = dc_runtime_balanced_gateway_rows($gatewayActivityRows, 16, 4);
+
 echo json_encode([
     'source_file' => basename($abFile),
     'log_source' => $activeAdapter === 'bm_stfu'
         ? $stfuLog
-        : (($activeAdapter === 'bm_stock' || $activeAdapter === 'p25' || $activeAdapter === 'nxdn') ? $analogLog : $bridgeFile),
+        : ($activeAdapter === 'bmtd'
+            ? $bmtdLog
+            : ($activeAdapter === 'tgifd'
+                ? $tgifdLog
+                : (($activeAdapter === 'bm_stock' || $activeAdapter === 'p25' || $activeAdapter === 'nxdn') ? $analogLog : $bridgeFile))),
     'ab_version' => $ab['version'] ?? '--',
     'call' => dc_display_station_call((string)($dig['call'] ?? ''), (string)($dig['gw'] ?? '')),
     'gw' => $dig['gw'] ?? '--',

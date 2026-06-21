@@ -165,7 +165,7 @@ function dc_adapter_tgifd(string $tzName): array {
     $pidFile = $appDir . '/run/alltune2-tgifd.pid';
     $cfgFile = $appDir . '/tgif/config/tgifd.ini';
     $binNeedle = $appDir . '/tgif/bin/tgifd';
-    $logFile = $appDir . '/logs/tgifd-helper.log';
+    $logFile = $appDir . '/logs/tgifd.log';
 
     $state = dc_tgifd_read_state($stateFile);
     $pid = trim((string)($state['pid'] ?? ''));
@@ -182,14 +182,12 @@ function dc_adapter_tgifd(string $tzName): array {
         $target = preg_replace('/\D+/', '', dc_tgifd_ini_value($cfgFile, 'tgif', 'startup_tg')) ?? '';
     }
 
-    if (!$activeFlag || !$pidAlive || $target === '') {
-        return dc_idle_adapter('TGIF');
-    }
-
+    // Keep TGIFD activity rows available even when TGIFD is idle.
+    // Connection state may go idle, but history should not disappear when switching networks.
     $rows = dc_tgifd_rows_from_log($logFile, $target, $tzName);
 
     $lastHeard = '--';
-    $lastSignal = time();
+    $lastSignal = 0;
 
     if (!empty($rows)) {
         $first = $rows[0];
@@ -197,8 +195,28 @@ function dc_adapter_tgifd(string $tzName): array {
         try {
             $lastSignal = (new DateTime((string)($first['utc'] ?? ''), new DateTimeZone('UTC')))->getTimestamp();
         } catch (Throwable $e) {
-            $lastSignal = time();
+            $lastSignal = 0;
         }
+    }
+
+    if (!$activeFlag || !$pidAlive || $target === '') {
+        $idle = dc_idle_adapter('TGIF');
+        $idle['adapter'] = 'tgifd';
+        $idle['provider'] = 'TGIFD';
+        $idle['network'] = 'TGIF';
+        $idle['rows'] = $rows;
+        $idle['last_heard'] = $lastHeard;
+        $idle['left_label'] = 'Last Heard';
+        $idle['left_value'] = $lastHeard;
+        $idle['signal_epoch'] = $lastSignal;
+        $idle['debug_tgifd_pid'] = $pid;
+        $idle['debug_tgifd_state_file'] = $stateFile;
+        $idle['debug_tgifd_log_file'] = $logFile;
+        return $idle;
+    }
+
+    if ($lastSignal <= 0) {
+        $lastSignal = time();
     }
 
     $displayTarget = 'TG ' . $target;

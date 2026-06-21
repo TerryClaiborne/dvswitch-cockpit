@@ -255,7 +255,32 @@ function dvc_collect(): array
     if ($tgifdActive && $tgifdPid !== '' && is_dir('/proc/' . $tgifdPid)) {
         $hblink = 'ON';
     }
-    $stfu = dvc_process_state('stfu|STFU|bm-stfu');
+
+    $bmtd = 'OFF';
+    $bmtdStateFile = '/var/www/html/alltune2/run/alltune2-bmtd.state';
+    $bmtdPidFile = '/var/www/html/alltune2/run/alltune2-bmtd.pid';
+    $bmtdActive = false;
+    $bmtdPid = '';
+
+    if (is_readable($bmtdStateFile)) {
+        foreach (file($bmtdStateFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [] as $line) {
+            if (!str_contains($line, '=')) continue;
+            [$k, $v] = array_map('trim', explode('=', $line, 2));
+            if (strtolower($k) === 'active' && strtolower(trim($v, "\"' ")) === 'true') $bmtdActive = true;
+            if (strtolower($k) === 'pid') $bmtdPid = preg_replace('/\D+/', '', $v) ?? '';
+        }
+    }
+
+    if ($bmtdPid === '' && is_readable($bmtdPidFile)) {
+        $bmtdPid = preg_replace('/\D+/', '', (string) @file_get_contents($bmtdPidFile)) ?? '';
+    }
+
+    if ($bmtdActive && $bmtdPid !== '' && is_readable('/proc/' . $bmtdPid . '/cmdline')) {
+        $cmdline = str_replace("\0", ' ', (string) @file_get_contents('/proc/' . $bmtdPid . '/cmdline'));
+        if (str_contains($cmdline, '/var/www/html/alltune2/bmtd/bin/bmtd')) {
+            $bmtd = 'ON';
+        }
+    }
 
     return [
         'hostname' => $host,
@@ -273,7 +298,7 @@ function dvc_collect(): array
         'ab' => $ab,
         'mb' => $mb,
         'hblink' => $hblink,
-        'stfu' => $stfu,
+        'bmtd' => $bmtd,
     ];
 }
 
@@ -317,6 +342,6 @@ function dvc_chip(array $initial, string $label, string $key, bool $hot = false)
 <?= dvc_chip($initial, 'AB', 'ab', true) ?>
 <?= dvc_chip($initial, 'MB', 'mb', true) ?>
 <?= dvc_chip($initial, 'TGIF', 'hblink', true) ?>
-<?= dvc_chip($initial, 'STFU', 'stfu', true) ?>
+<?= dvc_chip($initial, 'BMTD', 'bmtd', true) ?>
 </div>
 </div>

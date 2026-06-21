@@ -96,6 +96,7 @@ function dc_resolve_active(array $abinfo, array $adapters, array &$stateCache = 
 
     $bmStfu  = $adapters['bm_stfu']      ?? dc_idle_adapter('BrandMeister');
     $bmStock = $adapters['bm_stock']     ?? dc_idle_adapter('BrandMeister');
+    $bmtd    = $adapters['bmtd']         ?? dc_idle_adapter('BrandMeister');
     $ysf     = $adapters['ysf']          ?? dc_idle_adapter('YSF');
     $dstar   = $adapters['dstar']        ?? dc_idle_adapter('D-Star');
     $tgifd   = $adapters['tgifd']        ?? dc_idle_adapter('TGIF');
@@ -117,8 +118,12 @@ function dc_resolve_active(array $abinfo, array $adapters, array &$stateCache = 
         unset($stateCache['bm_stock']);
     }
 
-    // TGIFD owns the TGIF path outside normal MMDVM_Bridge runtime, so it must
-    // beat stale live Analog_Bridge mode detection such as NXDN/P25.
+    // BMTD and TGIFD own direct TLV paths outside normal MMDVM_Bridge runtime,
+    // so they must beat stale live Analog_Bridge mode detection.
+    if (dc_adapter_is_connected($bmtd)) {
+        return $bmtd;
+    }
+
     if (dc_adapter_is_connected($tgifd)) {
         return $tgifd;
     }
