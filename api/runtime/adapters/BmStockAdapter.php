@@ -15,8 +15,10 @@ function dc_adapter_bm_stock(array $analogLines, array $abinfo, array $services,
     $runtimeTgEpoch = (int)($abinfo['_runtime']['latest_txtg']['epoch'] ?? 0);
     $runtimeTgDisconnect = (bool)($abinfo['_runtime']['latest_txtg']['disconnect'] ?? false);
 
-    // Only operate on plain live DMR lane. Resolver decides BM vs TGIF ownership.
-    if ($liveMode !== 'DMR') {
+    // Only operate on the stock MMDVM_Bridge DMR lane.
+    // BMTD and TGIFD also leave Analog_Bridge in DMR/TLV mode, but those direct
+    // TLV paths are owned by their dedicated adapters when MMDVM_Bridge is inactive.
+    if ($liveMode !== 'DMR' || (($services['mmdvm_bridge'] ?? 'inactive') !== 'active')) {
         return dc_idle_adapter('BrandMeister');
     }
 
