@@ -464,80 +464,241 @@ fi
 echo
 echo "[5b/7] Installing Apache access-log filter if available..."
 if command -v apache2ctl >/dev/null 2>&1; then
-  APACHE_FILTER_BACKUP_DIR="/root/dvswitch-cockpit-backups/apache-accesslog-filter-$(date +%Y%m%d-%H%M%S)"
+  if ! command -v a2enconf >/dev/null 2>&1; then
+    echo "a2enconf not found; skipping Apache access-log filter."
+  elif [[ ! -d /etc/apache2/conf-available ]]; then
+    echo "Apache conf-available not found; skipping Apache access-log filter."
+  else
+    APACHE_POLLING_CONF_NAME="dvswitch-cockpit-polling"
+    APACHE_POLLING_CONF_FILE="/etc/apache2/conf-available/${APACHE_POLLING_CONF_NAME}.conf"
 
-  if ! python3 - "$APACHE_FILTER_BACKUP_DIR" <<'PYAPACHE'
+    cat > "$APACHE_POLLING_CONF_FILE" <<'EOF_APACHE_POLLING'
+# Managed by setup_dvswitch_cockpit.sh
+# Marks only DVSwitch Cockpit high-frequency polling requests for access-log suppression.
+SetEnvIf Request_URI "^/dvswitch_cockpit/api/runtime_status\.php$" dontlog_app_polling=1
+SetEnvIfExpr "%{REQUEST_URI} == '/dvswitch_cockpit/index.php' && %{QUERY_STRING} =~ m#(^|&)dvc_ribbon_ajax=1(&|$)#" dontlog_app_polling=1
+EOF_APACHE_POLLING
+
+    chmod 0644 "$APACHE_POLLING_CONF_FILE"
+    chown root:root "$APACHE_POLLING_CONF_FILE"
+
+    if ! a2enconf "$APACHE_POLLING_CONF_NAME" >/dev/null; then
+      echo "Failed to enable Apache polling config: $APACHE_POLLING_CONF_NAME" >&2
+      exit 1
+    fi
+
+    if ! apache2ctl configtest >/dev/null; then
+      echo "Apache configtest failed after installing $APACHE_POLLING_CONF_FILE" >&2
+      exit 1
+    fi
+
+    APACHE_FILTER_BACKUP_DIR="/root/dvswitch-cockpit-backups/apache-accesslog-filter-$(date +%Y%m%d-%H%M%S)"
+
+    if ! APACHE_FILTER_RESTORE_FILE="$(mktemp "${TMPDIR:-/tmp}/dvswitch-cockpit-apache-accesslog-restore.XXXXXX.json")"; then
+      echo "Failed to create temporary Apache restore file." >&2
+      exit 1
+    fi
+
+    if ! APACHE_FILTER_OUTPUT="$(python3 - "$APACHE_FILTER_RESTORE_FILE" "$APACHE_FILTER_BACKUP_DIR" <<'PYAPACHE'
+import json
 import pathlib
+import re
 import shutil
 import sys
 
-backup_dir = pathlib.Path(sys.argv[1])
+restore_file = pathlib.Path(sys.argv[1])
+backup_dir = pathlib.Path(sys.argv[2])
+restore_items = {}
+
+generic_expr_line = 'CustomLog ${APACHE_LOG_DIR}/access.log combined "expr=!(reqenv(\'dontlog_app_polling\') == \'1\' || (reqenv(\'dontlog_app_polling_200\') == \'1\' && %{REQUEST_STATUS} == 200))"'
+
+old_alltune_expr_line = 'CustomLog ${APACHE_LOG_DIR}/access.log combined "expr=!(%{REQUEST_URI} =~ m#^/alltune2/(api/status\\.php|public/alltune2_ribbon_bar\\.php)#)"'
+
+old_alltune_cockpit_line = 'CustomLog ${APACHE_LOG_DIR}/access.log combined "expr=!((%{REQUEST_URI} =~ m#^/alltune2/(api/status\\.php|public/alltune2_ribbon_bar\\.php)#) || (%{REQUEST_URI} =~ m#^/dvswitch_cockpit/api/runtime_status\\.php#) || ((%{REQUEST_URI} =~ m#^/dvswitch_cockpit/index\\.php#) && (%{QUERY_STRING} =~ m#(^|&)dvc_ribbon_ajax=1(&|$)#)))"'
+
+plain_customlog_re = re.compile(
+    r'^(\s*)CustomLog\s+\$\{APACHE_LOG_DIR\}/access\.log\s+combined\s*$'
+)
+
+old_alltune_env_re = re.compile(
+    r'^(\s*)CustomLog\s+\$\{APACHE_LOG_DIR\}/access\.log\s+combined\s+env=!dontlog_alltune2_polling\s*$'
+)
+
+alltune_marker_enabled = pathlib.Path(
+    "/etc/apache2/conf-enabled/alltune2-polling.conf"
+).exists()
 
 paths = []
-for base in (pathlib.Path("/etc/apache2/sites-available"), pathlib.Path("/etc/apache2/sites-enabled")):
+for base in (
+    pathlib.Path("/etc/apache2/sites-available"),
+    pathlib.Path("/etc/apache2/sites-enabled"),
+):
     if not base.exists():
         continue
+
     for item in base.glob("*.conf"):
         try:
             real = item.resolve()
         except Exception:
             continue
+
         if real.exists() and real.is_file() and real not in paths:
             paths.append(real)
-
-if not paths:
-    print("No Apache site files found for access-log filtering.")
-    raise SystemExit(0)
-
-combined_line = 'CustomLog ${APACHE_LOG_DIR}/access.log combined "expr=!((%{REQUEST_URI} =~ m#^/alltune2/(api/status\\.php|public/alltune2_ribbon_bar\\.php)#) || (%{REQUEST_URI} =~ m#^/dvswitch_cockpit/api/runtime_status\\.php#) || ((%{REQUEST_URI} =~ m#^/dvswitch_cockpit/index\\.php#) && (%{QUERY_STRING} =~ m#(^|&)dvc_ribbon_ajax=1(&|$)#)))"'
-
-plain_line = "CustomLog ${APACHE_LOG_DIR}/access.log combined"
-alltune2_line = 'CustomLog ${APACHE_LOG_DIR}/access.log combined "expr=!(%{REQUEST_URI} =~ m#^/alltune2/(api/status\\.php|public/alltune2_ribbon_bar\\.php)#)"'
 
 changed = []
 skipped = []
 
 for path in paths:
-    text = path.read_text()
-
-    if "dvswitch_cockpit/api/runtime_status" in text and "dvc_ribbon_ajax" in text:
+    try:
+        text = path.read_text()
+    except Exception as exc:
+        skipped.append(f"{path}: could not read file: {exc}")
         continue
 
-    if alltune2_line in text:
-        backup_dir.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(path, backup_dir / path.name)
-        path.write_text(text.replace(alltune2_line, combined_line, 1))
-        changed.append(str(path))
+    lines = text.splitlines(keepends=True)
+    new_lines = []
+    file_changed = False
+
+    for line in lines:
+        if "CustomLog" in line and "access.log" in line:
+            raw = line.rstrip("\r\n")
+            stripped = raw.strip()
+
+            if stripped == generic_expr_line:
+                new_lines.append(line)
+                continue
+
+            ending = "\n" if line.endswith("\n") else ""
+            indent = raw[:len(raw) - len(raw.lstrip())]
+
+            if stripped == old_alltune_expr_line:
+                if alltune_marker_enabled:
+                    new_lines.append(indent + generic_expr_line + ending)
+                else:
+                    # Preserve legacy AllTune2 filtering while also adding
+                    # Cockpit filtering until AllTune2's new marker exists.
+                    new_lines.append(indent + old_alltune_cockpit_line + ending)
+                file_changed = True
+                continue
+
+            if stripped == old_alltune_cockpit_line:
+                if alltune_marker_enabled:
+                    new_lines.append(indent + generic_expr_line + ending)
+                    file_changed = True
+                else:
+                    # This known legacy rule already protects both applications.
+                    new_lines.append(line)
+                continue
+
+            old_env_match = old_alltune_env_re.match(raw)
+            if old_env_match:
+                if alltune_marker_enabled:
+                    new_lines.append(
+                        old_env_match.group(1) + generic_expr_line + ending
+                    )
+                else:
+                    # Replace the known legacy AllTune2 env form with the known
+                    # AllTune2+Cockpit expression so neither filter is lost.
+                    new_lines.append(
+                        old_env_match.group(1) + old_alltune_cockpit_line + ending
+                    )
+                file_changed = True
+                continue
+
+            plain_match = plain_customlog_re.match(raw)
+            if plain_match:
+                new_lines.append(
+                    plain_match.group(1) + generic_expr_line + ending
+                )
+                file_changed = True
+                continue
+
+            if "expr=" in line or " env=" in line:
+                skipped.append(
+                    f"{path}: existing custom/combined CustomLog preserved"
+                )
+            else:
+                skipped.append(
+                    f"{path}: CustomLog access.log format not recognized; left unchanged"
+                )
+
+        new_lines.append(line)
+
+    if not file_changed:
         continue
 
-    if plain_line in text and "expr=" not in text:
-        backup_dir.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(path, backup_dir / path.name)
-        path.write_text(text.replace(plain_line, combined_line, 1))
-        changed.append(str(path))
-        continue
+    backup_dir.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(path, backup_dir / path.name)
 
-    if plain_line in text and "expr=" in text:
-        skipped.append(str(path))
+    restore_items[str(path)] = text
+    path.write_text("".join(new_lines))
+    changed.append(str(path))
 
-if changed:
-    for item in changed:
-        print(f"Installed Cockpit access-log filter in {item}")
-elif skipped:
-    print("Apache CustomLog already has a custom expression; skipped automatic Cockpit access-log filter for:")
-    for item in skipped:
-        print(f"  {item}")
-else:
-    print("Cockpit access-log filter already present or no matching CustomLog lines found.")
+if restore_items:
+    restore_file.write_text(json.dumps(restore_items))
+
+for item in skipped:
+    print(f"SKIPPED {item}")
+
+for item in changed:
+    print(f"CHANGED {item}")
+
+if not changed:
+    print("NO_CHANGES")
 PYAPACHE
-  then
-    echo "Warning: failed while attempting to install Apache access-log filter." >&2
-  fi
+)"; then
+      echo "Warning: failed while attempting to install Apache access-log filter." >&2
+      rm -f "$APACHE_FILTER_RESTORE_FILE"
+      exit 1
+    fi
 
-  if ! apache2ctl configtest >/dev/null; then
-    echo "Apache configtest failed after access-log filter update." >&2
-    echo "Review backups under: $APACHE_FILTER_BACKUP_DIR" >&2
-    exit 1
+    while IFS= read -r line; do
+      case "$line" in
+        SKIPPED\ *)
+          echo "${line#SKIPPED }"
+          ;;
+        CHANGED\ *)
+          echo "Updated Apache access-log filter in ${line#CHANGED }"
+          ;;
+      esac
+    done <<< "$APACHE_FILTER_OUTPUT"
+
+    if ! apache2ctl configtest >/dev/null; then
+      echo "Apache configtest failed after access-log filter update; restoring Apache site files." >&2
+
+      if [[ -s "$APACHE_FILTER_RESTORE_FILE" ]]; then
+        python3 - "$APACHE_FILTER_RESTORE_FILE" <<'PYRESTORE'
+import json
+import pathlib
+import sys
+
+restore_file = pathlib.Path(sys.argv[1])
+restore_items = json.loads(restore_file.read_text())
+
+for original, content in restore_items.items():
+    pathlib.Path(original).write_text(content)
+PYRESTORE
+      fi
+
+      rm -f "$APACHE_FILTER_RESTORE_FILE"
+
+      if apache2ctl configtest >/dev/null; then
+        echo "Apache site files restored; Cockpit access-log hook was not installed." >&2
+        exit 1
+      fi
+
+      echo "Apache configtest still fails after restoring site files; manual review required." >&2
+      exit 1
+    fi
+
+    rm -f "$APACHE_FILTER_RESTORE_FILE"
+
+    if [[ "$APACHE_FILTER_OUTPUT" == *"CHANGED"* ]]; then
+      echo "Cockpit polling marker installed and Apache access-log filtering configured."
+      echo "Apache site backup: $APACHE_FILTER_BACKUP_DIR"
+    else
+      echo "Cockpit polling marker installed; existing Apache CustomLog configuration preserved."
+    fi
   fi
 else
   echo "apache2ctl not found; skipping Apache access-log filter."
