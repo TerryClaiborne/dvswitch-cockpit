@@ -1,0 +1,559 @@
+/*
+ * DVSwitch Cockpit blue light/dark theme candidate.
+ * Theme-only layer: no runtime, parser, service-control, or backend changes.
+ */
+
+:root {
+    --dvc-bg: #050b18;
+    --dvc-panel: #0b1528;
+    --dvc-panel-2: #101c31;
+    --dvc-panel-3: #14233b;
+    --dvc-header: linear-gradient(180deg, #224d83 0%, #14233b 100%);
+    --dvc-border: #253a59;
+    --dvc-border-strong: #3b557d;
+    --dvc-text: #f6f8ff;
+    --dvc-soft: #d5ddea;
+    --dvc-dim: #acb9cc;
+    --dvc-blue: #4a9dff;
+    --dvc-blue-deep: #224d83;
+    --dvc-blue-hover: #2f669b;
+    --dvc-shadow: 0 10px 28px rgba(0, 0, 0, .26);
+
+    /* Remap the original Cockpit variables away from decorative purple. */
+    --panel-top: rgba(11, 21, 40, .98);
+    --panel-bot: rgba(5, 11, 24, .99);
+    --border: #3b557d;
+    --border-soft: #253a59;
+    --purple: #d5ddea;
+    --muted: #acb9cc;
+    --green: #72ff72;
+    --green2: #49d56a;
+
+    --theme-track: linear-gradient(180deg, #101c31, #050b18);
+    --theme-track-border: rgba(59, 85, 125, .75);
+    --theme-thumb: linear-gradient(180deg, #3b557d, #253a59);
+    --theme-caption: #acb9cc;
+    --theme-text: #acb9cc;
+    --theme-text-active: #ffffff;
+
+    --ribbon-bg: linear-gradient(180deg, rgba(16, 28, 49, .98), rgba(5, 11, 24, .98));
+    --ribbon-border: rgba(74, 157, 255, .38);
+    --ribbon-pill-bg: linear-gradient(180deg, rgba(20, 35, 59, .98), rgba(10, 20, 38, .99));
+    --ribbon-pill-border: rgba(59, 85, 125, .52);
+    --ribbon-label: #8fc5ff;
+    --ribbon-value: #f6f8ff;
+
+    color-scheme: dark;
+}
+
+html[data-theme="light"] {
+    --dvc-bg: #e9eef4;
+    --dvc-panel: #ffffff;
+    --dvc-panel-2: #f4f7fb;
+    --dvc-panel-3: #e4edf8;
+    --dvc-header: linear-gradient(180deg, #4f79ad 0%, #3f6997 100%);
+    --dvc-border: #d3dfec;
+    --dvc-border-strong: #b8cadf;
+    --dvc-text: #1a3147;
+    --dvc-soft: #47647f;
+    --dvc-dim: #698096;
+    --dvc-blue: #4c79b2;
+    --dvc-blue-deep: #3f6fa5;
+    --dvc-blue-hover: #5b89c4;
+    --dvc-shadow: 0 10px 24px rgba(68, 98, 136, .14);
+
+    --panel-top: #ffffff;
+    --panel-bot: #f4f7fb;
+    --border: #b8cadf;
+    --border-soft: #d3dfec;
+    --purple: #1a3147;
+    --muted: #698096;
+    --green: #197a34;
+    --green2: #248751;
+
+    --theme-track: linear-gradient(180deg, #dce8f5, #cfddec);
+    --theme-track-border: rgba(98, 133, 176, .45);
+    --theme-thumb: linear-gradient(180deg, #ffffff, #edf4fb);
+    --theme-caption: #47647f;
+    --theme-text: #56728f;
+    --theme-text-active: #23456b;
+
+    --ribbon-bg: linear-gradient(180deg, rgba(246, 250, 255, .99), rgba(232, 240, 248, .99));
+    --ribbon-border: rgba(98, 133, 176, .32);
+    --ribbon-pill-bg: linear-gradient(180deg, #ffffff, #edf4fb);
+    --ribbon-pill-border: rgba(113, 146, 188, .40);
+    --ribbon-label: #2e5f95;
+    --ribbon-value: #18324d;
+
+    color-scheme: light;
+}
+
+html,
+body {
+    background: var(--dvc-bg);
+}
+
+body {
+    color: var(--dvc-text);
+    background: var(--dvc-bg);
+}
+
+/* Header / shell */
+.top-header {
+    background: var(--dvc-panel);
+    border-color: var(--dvc-border);
+    box-shadow: var(--dvc-shadow);
+}
+
+.title-wrap-auth {
+    padding-left: 180px;
+    padding-right: 180px;
+}
+
+.title-wrap h1 {
+    color: var(--dvc-text);
+    text-shadow: none;
+}
+
+.title-wrap p {
+    color: var(--dvc-soft);
+}
+
+.subtitle-sep {
+    color: var(--dvc-blue);
+    text-shadow: none;
+}
+
+.repo-link {
+    color: var(--dvc-blue);
+    border-bottom-color: color-mix(in srgb, var(--dvc-blue) 50%, transparent);
+    text-shadow: none;
+}
+
+.repo-link:hover {
+    color: var(--dvc-text);
+    border-bottom-color: var(--dvc-blue);
+}
+
+.top-nav {
+    background: var(--dvc-panel-2);
+}
+
+.nav-btn {
+    color: var(--dvc-soft);
+}
+
+.nav-btn.active {
+    color: #ffffff;
+    background: var(--dvc-blue-deep);
+}
+
+/* Theme control - upper left */
+.cockpit-theme-control {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+}
+
+.cockpit-theme-caption {
+    color: var(--theme-caption);
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+}
+
+.cockpit-theme-toggle {
+    position: relative;
+    display: inline-grid;
+    grid-template-columns: repeat(2, 1fr);
+    align-items: center;
+    width: 108px;
+    height: 26px;
+    padding: 3px;
+    border: 1px solid var(--theme-track-border);
+    border-radius: 999px;
+    background: var(--theme-track);
+    color: var(--theme-text);
+    cursor: pointer;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.08);
+}
+
+.cockpit-theme-toggle:focus-visible {
+    outline: 2px solid var(--dvc-blue);
+    outline-offset: 2px;
+}
+
+.cockpit-theme-text {
+    position: relative;
+    z-index: 2;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 9px;
+    font-weight: 800;
+    user-select: none;
+}
+
+.cockpit-theme-thumb {
+    position: absolute;
+    z-index: 1;
+    top: 3px;
+    left: 3px;
+    width: calc(50% - 3px);
+    height: calc(100% - 6px);
+    border-radius: 999px;
+    background: var(--theme-thumb);
+    box-shadow: 0 3px 8px rgba(0,0,0,.22);
+    transition: transform .18s ease;
+}
+
+html[data-theme="dark"] .cockpit-theme-thumb {
+    transform: translateX(100%);
+}
+
+html[data-theme="light"] .cockpit-theme-thumb {
+    transform: translateX(0);
+}
+
+html[data-theme="dark"] .cockpit-theme-dark,
+html[data-theme="light"] .cockpit-theme-light {
+    color: var(--theme-text-active);
+}
+
+/* Auth remains semantic, but loses the purple shell. */
+.cockpit-auth-pill,
+.cockpit-auth-link {
+    background: var(--dvc-panel-2);
+    border-color: var(--dvc-border);
+    color: var(--dvc-soft);
+}
+
+/* Main cards */
+.panel {
+    background: linear-gradient(180deg, var(--dvc-panel), var(--dvc-panel-2));
+    border-color: var(--dvc-border-strong);
+    box-shadow: var(--dvc-shadow);
+}
+
+.card-dark {
+    background: var(--dvc-panel-2);
+    border-color: var(--dvc-border);
+}
+
+.hero-panel h2,
+.panel-head h3,
+.section-title,
+.logs-title {
+    color: var(--dvc-text);
+}
+
+.panel-icons,
+.logs-icons {
+    color: var(--dvc-blue);
+}
+
+.hero-title {
+    color: var(--dvc-text);
+    border-color: var(--dvc-border);
+    background: var(--dvc-header);
+}
+
+.hero-grid {
+    background: var(--dvc-panel-2);
+    border-color: var(--dvc-border);
+}
+
+.hero-labels div,
+.hero-values div,
+.hero-meters .meter-row {
+    border-top-color: var(--dvc-border);
+}
+
+.hero-labels div {
+    color: var(--dvc-soft);
+}
+
+.hero-meters {
+    background: var(--dvc-panel-3);
+}
+
+.meter-row small {
+    color: var(--dvc-soft);
+}
+
+.meter,
+.mini-meter {
+    background: color-mix(in srgb, var(--dvc-border) 45%, transparent);
+    border-color: var(--dvc-border);
+}
+
+.mode-pill {
+    background: var(--dvc-panel-3);
+}
+
+.mini-text,
+.path {
+    color: var(--dvc-dim);
+}
+
+/* Buttons become blue, not purple. */
+.action-btn {
+    border-color: var(--dvc-border-strong);
+    background: linear-gradient(180deg, var(--dvc-blue-deep), #14233b);
+    color: #ffffff;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.03);
+}
+
+.action-btn:hover:not(:disabled) {
+    border-color: var(--dvc-blue);
+    background: linear-gradient(180deg, var(--dvc-blue-hover), var(--dvc-blue-deep));
+}
+
+html[data-theme="light"] .action-btn {
+    background: linear-gradient(180deg, #4f79ad, #3f6997);
+    border-color: #618bbd;
+}
+
+/* Gateway / Local Activity:
+   preserve mode colors, replace only structural purple. */
+.activity-table thead th {
+    background: var(--dvc-header);
+    color: #ffffff;
+    border-bottom-color: var(--dvc-border);
+}
+
+.activity-table td {
+    color: var(--dvc-text);
+    border-top-color: var(--dvc-border);
+}
+
+.activity-table tbody tr.activity-row td,
+.activity-table tbody tr.activity-row:nth-child(even) td {
+    background: var(--dvc-panel-2);
+}
+
+.activity-table tbody tr.activity-row:nth-child(even) td {
+    background: var(--dvc-panel-3);
+}
+
+.activity-table tbody tr.activity-row:hover td {
+    background: color-mix(in srgb, var(--dvc-blue) 10%, var(--dvc-panel-2));
+}
+
+.station-plain {
+    color: var(--dvc-text);
+}
+
+html[data-theme="light"] .qrz-link {
+    color: #08756f;
+    border-bottom-color: rgba(8,117,111,.40);
+    text-shadow: none;
+}
+
+html[data-theme="light"] .dmr-id,
+html[data-theme="light"] .quality-muted,
+html[data-theme="light"] .duration-muted {
+    color: var(--dvc-dim);
+}
+
+html[data-theme="light"] .duration-value {
+    color: #9a6500;
+    text-shadow: none;
+}
+
+/* Recent activity keeps the per-network colors. */
+.recent-summary {
+    background: var(--dvc-panel-2);
+}
+
+.recent-log {
+    background: var(--dvc-panel-2);
+}
+
+.recent-log div {
+    color: var(--dvc-soft);
+}
+
+.network-box {
+    border-color: var(--dvc-border);
+}
+
+html[data-theme="light"] .network-box.net-bm {
+    background: linear-gradient(90deg, #f2e8fb, #ffffff);
+}
+
+html[data-theme="light"] .network-box.net-tgif {
+    background: linear-gradient(90deg, #e4f2ff, #ffffff);
+}
+
+html[data-theme="light"] .network-box.net-ysf {
+    background: linear-gradient(90deg, #e7f7e9, #ffffff);
+}
+
+html[data-theme="light"] .network-box.net-dstar {
+    background: linear-gradient(90deg, #fff5d9, #ffffff);
+}
+
+html[data-theme="light"] .network-box.net-p25 {
+    background: linear-gradient(90deg, #e4f8fa, #ffffff);
+}
+
+html[data-theme="light"] .network-box.net-nxdn {
+    background: linear-gradient(90deg, #fff0e5, #ffffff);
+}
+
+/* AB detail strip / footer */
+.footer-bar {
+    color: var(--dvc-text);
+    border-color: var(--dvc-border);
+    background: var(--dvc-panel-2);
+}
+
+.footer-badge {
+    background: var(--dvc-panel-3);
+    border-color: var(--dvc-border);
+}
+
+/* System tape/ribbon.
+   !important is intentional: system_ribbon.php currently emits its
+   own ID-scoped color rules after the page stylesheet. */
+.dvc-ribbon {
+    border-color: var(--ribbon-border) !important;
+    background: var(--ribbon-bg) !important;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.03) !important;
+}
+
+.dvc-ribbon .dvc-ribbon-pill {
+    border-color: var(--ribbon-pill-border) !important;
+    background: var(--ribbon-pill-bg) !important;
+    color: var(--ribbon-value) !important;
+}
+
+.dvc-ribbon .dvc-l {
+    color: var(--ribbon-label) !important;
+}
+
+.dvc-ribbon .dvc-v {
+    color: var(--ribbon-value) !important;
+}
+
+.dvc-ribbon .dvc-hot {
+    color: var(--green) !important;
+}
+
+/* Light mode final readability pass. */
+html[data-theme="light"] .panel,
+html[data-theme="light"] .card-dark {
+    box-shadow: 0 8px 20px rgba(68,98,136,.08);
+}
+
+html[data-theme="light"] .hero-title {
+    color: #ffffff;
+}
+
+html[data-theme="light"] .activity-table tbody tr.activity-row td {
+    background: #ffffff;
+}
+
+html[data-theme="light"] .activity-table tbody tr.activity-row:nth-child(even) td {
+    background: #f4f7fb;
+}
+
+html[data-theme="light"] .activity-table tbody tr.activity-row:hover td {
+    background: #e6f2ff;
+}
+
+@media (max-width: 760px) {
+    .title-wrap-auth {
+        padding: 5px 8px;
+    }
+
+    .cockpit-theme-control {
+        position: static;
+        transform: none;
+        justify-content: center;
+        order: -1;
+    }
+}
+
+/* Light theme: tone down the bright YSF target text against white rows. */
+html[data-theme="light"] .target-text.mode-ysf {
+    color: #197a34;
+}
+
+/* Optional login page: use the same Cockpit light/dark theme. */
+.cockpit-login-page {
+    background: var(--dvc-bg);
+    color: var(--dvc-text);
+}
+
+.cockpit-login-card {
+    background: linear-gradient(180deg, var(--dvc-panel), var(--dvc-panel-2));
+    border-color: var(--dvc-border-strong);
+    box-shadow: var(--dvc-shadow);
+}
+
+.cockpit-login-card h1 {
+    color: var(--dvc-text);
+}
+
+.cockpit-login-subtitle,
+.cockpit-login-note {
+    color: var(--dvc-soft);
+}
+
+.cockpit-login-card label {
+    color: var(--dvc-soft);
+}
+
+.cockpit-login-card input[type="password"] {
+    border-color: var(--dvc-border-strong);
+    background: var(--dvc-panel-3);
+    color: var(--dvc-text);
+}
+
+.cockpit-login-card input[type="password"]:focus {
+    border-color: var(--dvc-blue);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--dvc-blue) 22%, transparent);
+}
+
+.cockpit-login-card button {
+    border-color: var(--dvc-border-strong);
+    background: linear-gradient(180deg, var(--dvc-blue-deep), #14233b);
+    color: #ffffff;
+}
+
+.cockpit-login-card button:hover {
+    border-color: var(--dvc-blue);
+    background: linear-gradient(180deg, var(--dvc-blue-hover), var(--dvc-blue-deep));
+}
+
+.cockpit-login-back a {
+    color: var(--dvc-blue);
+}
+
+.cockpit-login-back a:hover {
+    color: var(--dvc-text);
+}
+
+html[data-theme="light"] .cockpit-login-card button {
+    background: linear-gradient(180deg, #4f79ad, #3f6997);
+    border-color: #618bbd;
+}
+
+html[data-theme="light"] .cockpit-login-card input[type="password"] {
+    background: #ffffff;
+    color: #1a3147;
+}
+
+html[data-theme="light"] .cockpit-login-error {
+    background: #fff1f3;
+    border-color: #d99aaa;
+    color: #8e2438;
+}

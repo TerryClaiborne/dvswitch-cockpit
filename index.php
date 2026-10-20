@@ -12,7 +12,9 @@ if ($dvcVersion === '') { $dvcVersion = '0.0.0'; }
 
 $dvcAssetVersion = $dvcVersion . '-' . max(
     (int)@filemtime(__DIR__ . '/static/app.css'),
-    (int)@filemtime(__DIR__ . '/static/app.js')
+    (int)@filemtime(__DIR__ . '/static/app.js'),
+    (int)@filemtime(__DIR__ . '/static/theme.css'),
+    (int)@filemtime(__DIR__ . '/static/theme.js')
 );
 ?>
 <!doctype html>
@@ -22,10 +24,28 @@ $dvcAssetVersion = $dvcVersion . '-' . max(
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>DVSwitch Cockpit</title>
   <link rel="stylesheet" href="static/app.css?v=<?= htmlspecialchars($dvcAssetVersion, ENT_QUOTES) ?>">
+  <link rel="stylesheet" href="static/theme.css?v=<?= htmlspecialchars($dvcAssetVersion, ENT_QUOTES) ?>">
+  <script src="static/theme.js?v=<?= htmlspecialchars($dvcAssetVersion, ENT_QUOTES) ?>"></script>
 </head>
 <body>
   <header class="top-header">
     <div class="title-wrap title-wrap-auth">
+      <div class="cockpit-theme-control" aria-label="Theme selector">
+        <span class="cockpit-theme-caption">Theme</span>
+        <button
+          type="button"
+          class="cockpit-theme-toggle"
+          id="theme-toggle"
+          role="switch"
+          aria-checked="false"
+          aria-label="Toggle light and dark theme"
+        >
+          <span class="cockpit-theme-text cockpit-theme-light">Light</span>
+          <span class="cockpit-theme-text cockpit-theme-dark">Dark</span>
+          <span class="cockpit-theme-thumb" aria-hidden="true"></span>
+        </button>
+      </div>
+
       <div class="title-center">
         <h1 class="app-title">DVSwitch Cockpit <a id="update-bolt" class="update-bolt" href="https://github.com/TerryClaiborne/dvswitch-cockpit" target="_blank" rel="noopener noreferrer" data-current-version="<?= htmlspecialchars($dvcVersion, ENT_QUOTES) ?>" title="" aria-label="DVSwitch Cockpit update available">⚡</a></h1>
         <p class="app-subtitle">

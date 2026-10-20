@@ -48,6 +48,8 @@ function dvc_e(string $value): string {
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>DVSwitch Cockpit Login</title>
   <link rel="stylesheet" href="static/app.css">
+  <link rel="stylesheet" href="static/theme.css?v=<?= (int)@filemtime(__DIR__ . '/static/theme.css') ?>">
+  <script src="static/theme.js?v=<?= (int)@filemtime(__DIR__ . '/static/theme.js') ?>"></script>
 </head>
 <body class="cockpit-login-page">
   <main class="cockpit-login-shell">

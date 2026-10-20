@@ -19,6 +19,7 @@ It gives you one clean place to see:
 - DMR ID to callsign lookup
 - clickable QRZ callsign links
 - YSF quality information when available
+- light and dark themes with a remembered browser preference
 - Analog_Bridge and MMDVM_Bridge restart buttons
 
 Simple. Clean. Read-only where it should be.
@@ -38,20 +39,31 @@ With it, you can:
 - see DMR IDs resolved to callsigns when the DVSwitch subscriber database is available
 - click resolved callsigns to open QRZ
 - see YSF duration, loss, and BER when the backend provides it
+- switch between dark and light themes, with the choice remembered in the browser
 - restart Analog_Bridge
 - restart MMDVM_Bridge
 - restart Analog_Bridge + MMDVM_Bridge together
 
 ---  
 
+### Dark Theme
+
 <p align="center">
-    <a href="screenshot.png">
-    <img src="screenshot.png" alt="DVSwitch Cockpit dashboard screenshot" width="850">
+  <a href="screenshot-dark.png">
+    <img src="screenshot-dark.png" alt="DVSwitch Cockpit dark theme dashboard" width="850">
+  </a>
+</p>
+
+### Light Theme
+
+<p align="center">
+  <a href="screenshot-light.png">
+    <img src="screenshot-light.png" alt="DVSwitch Cockpit light theme dashboard" width="850">
   </a>
 </p>
 
 <p align="center">
-  <em>DVSwitch Cockpit dashboard showing node status, gateway activity, local activity, and DVSwitch runtime information.</em>
+  <em>DVSwitch Cockpit includes matching dark and light themes while preserving the color-coded activity and network information.</em>
 </p>
 
 ---
@@ -105,54 +117,6 @@ Always run the setup script after `git pull`.
 
 ---
 
-## 🛠️ Fix older installs
-
-Older README instructions may have created this extra folder:
-
-```text
-/var/www/html/dvswitch-cockpit
-```
-
-The current normal Cockpit folder is:
-
-```text
-/var/www/html/dvswitch_cockpit
-```
-
-If your install is confusing, or if `git pull` says `not a git repository`, the simplest fix is to remove the old Cockpit folders and reinstall clean.
-
-This removes only DVSwitch Cockpit web files and Cockpit cache files. It does **not** remove DVSwitch, Analog_Bridge, MMDVM_Bridge, AllTune2, or your DVSwitch subscriber database.
-
-```bash
-cd /var/www/html
-
-sudo rm -rf /var/www/html/dvswitch-cockpit
-sudo rm -rf /var/www/html/dvswitch_cockpit
-
-sudo rm -f /tmp/dvswitch_cockpit_*.json
-sudo rm -rf /var/cache/dvswitch-cockpit
-
-git clone https://github.com/TerryClaiborne/dvswitch-cockpit.git dvswitch_cockpit
-cd dvswitch_cockpit
-sudo ./setup_dvswitch_cockpit.sh
-```
-
-Open:
-
-```text
-http://YOUR-NODE-IP/dvswitch_cockpit/
-```
-
-After that, future updates are:
-
-```bash
-cd /var/www/html/dvswitch_cockpit
-git pull origin main
-sudo ./setup_dvswitch_cockpit.sh
-```
-
----
-
 ## 📂 Runtime/cache files
 
 DVSwitch Cockpit stores generated runtime/cache files here:
@@ -180,16 +144,6 @@ data/cache/.gitkeep
 
 That file only makes GitHub show the expected cache directory.
 
-Older Cockpit versions may have created cache files here:
-
-```text
-/tmp/dvswitch_cockpit_*.json
-/var/cache/dvswitch-cockpit/
-```
-
-The setup script migrates old Cockpit cache files into `data/cache/` when found.
-
-Only Cockpit-created cache files are migrated. DVSwitch-owned files are not moved or deleted.
 
 ---
 
