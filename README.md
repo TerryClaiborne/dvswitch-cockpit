@@ -117,6 +117,17 @@ Always run the setup script after `git pull`.
 
 ---
 
+## Apache Logging After ASL3 Updates
+
+ASL3 appliance updates may replace Apache site configurations and remove shared access-log polling filters. After an ASL3 appliance update, rerun the DVSwitch Cockpit installer to restore shared filtering while preserving normal request logging:
+
+```bash
+cd /var/www/html/dvswitch_cockpit
+sudo ./setup_dvswitch_cockpit.sh
+```
+
+---
+
 ## 📂 Runtime/cache files
 
 DVSwitch Cockpit stores generated runtime/cache files here:
