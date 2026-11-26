@@ -120,6 +120,30 @@ function dvc_service_state(array $services): string
     return 'OFF';
 }
 
+
+function dvc_state_pid_active(string $stateFile, string $pidFile): string
+{
+    $active = false;
+    $pid = '';
+
+    if (is_readable($stateFile)) {
+        foreach (file($stateFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [] as $line) {
+            if (!str_contains($line, '=')) continue;
+            [$k, $v] = array_map('trim', explode('=', $line, 2));
+            $k = strtolower($k);
+            $v = trim($v, "\"' ");
+            if ($k === 'active' && strtolower($v) === 'true') $active = true;
+            if ($k === 'pid') $pid = preg_replace('/\D+/', '', $v) ?? '';
+        }
+    }
+
+    if ($pid === '' && is_readable($pidFile)) {
+        $pid = preg_replace('/\D+/', '', (string) @file_get_contents($pidFile)) ?? '';
+    }
+
+    return ($active && $pid !== '' && is_dir('/proc/' . $pid)) ? 'ON' : 'OFF';
+}
+
 function dvc_process_state(string $pattern): string
 {
     $found = trim(dvc_exec('/usr/bin/pgrep -af ' . escapeshellarg($pattern) . ' 2>/dev/null'));
@@ -232,6 +256,11 @@ function dvc_collect(): array
 
     $ab = dvc_service_state(['analog_bridge.service']);
     $mb = dvc_service_state(['mmdvm_bridge.service']);
+    $m17d = dvc_service_state(['alltune2-m17d.service']);
+    $ipsc3d = dvc_state_pid_active(
+        '/var/www/html/alltune2/run/alltune2-ipsc3d.state',
+        '/var/www/html/alltune2/run/alltune2-ipsc3d.pid'
+    );
     $hblink = 'OFF';
 
     $tgifdStateFile = '/var/www/html/alltune2/run/alltune2-tgifd.state';
@@ -299,6 +328,8 @@ function dvc_collect(): array
         'mb' => $mb,
         'hblink' => $hblink,
         'bmtd' => $bmtd,
+        'm17d' => $m17d,
+        'ipsc3d' => $ipsc3d,
     ];
 }
 
@@ -321,27 +352,27 @@ function dvc_chip(array $initial, string $label, string $key, bool $hot = false)
 <div id="<?= $id ?>" class="dvc-ribbon" data-endpoint="index.php?dvc_ribbon_ajax=1">
 <style>
 #<?= $id ?>.dvc-ribbon{display:block;width:100%;max-width:1220px;margin:2px auto 6px;padding:4px 6px;border:1px solid rgba(140,112,210,.22);border-radius:10px;background:linear-gradient(180deg,rgba(20,11,33,.94),rgba(14,8,23,.96));box-shadow:inset 0 0 0 1px rgba(255,255,255,.02);font-family:Arial,Helvetica,sans-serif}
-#<?= $id ?> .dvc-ribbon-row{display:flex;width:100%;gap:4px;align-items:center;justify-content:center;flex-wrap:wrap;white-space:normal;overflow-x:visible;margin:0 auto}
+#<?= $id ?> .dvc-ribbon-row{display:flex;width:100%;gap:3px;align-items:center;justify-content:center;flex-wrap:nowrap;white-space:nowrap;overflow-x:visible;margin:0 auto}
 #<?= $id ?> .dvc-ribbon-pill{display:inline-flex;align-items:center;gap:4px;min-height:20px;padding:0 6px;border:1px solid rgba(110,84,173,.24);border-radius:7px;background:linear-gradient(180deg,rgba(35,18,58,.92),rgba(23,12,36,.96));color:#f0e9ff;font-size:9px;flex:0 0 auto}
 #<?= $id ?> .dvc-l{color:#c9a9ff;font-weight:700} #<?= $id ?> .dvc-v{color:#f7f4ff;font-weight:600} #<?= $id ?> .dvc-hot{color:#77ef7d}
-@media (max-width:1040px){ #<?= $id ?>.dvc-ribbon{width:100%;max-width:100%;margin:4px 0} #<?= $id ?> .dvc-ribbon-row{display:flex;width:100%;justify-content:center} }
+@media (max-width:1040px){ #<?= $id ?>.dvc-ribbon{width:100%;max-width:100%;margin:4px 0} #<?= $id ?> .dvc-ribbon-row{display:flex;width:100%;justify-content:center;flex-wrap:wrap;white-space:normal} }
 </style>
 <div class="dvc-ribbon-row">
 <?= dvc_chip($initial, 'Node', 'hostname') ?>
 <?= dvc_chip($initial, 'IP', 'ip') ?>
 <?= dvc_chip($initial, 'Time', 'time') ?>
 <?= dvc_chip($initial, 'CPU', 'cpu') ?>
-<?= dvc_chip($initial, 'Load', 'load') ?>
 <?= dvc_chip($initial, 'RAM', 'ram') ?>
 <?= dvc_chip($initial, 'Disk', 'disk') ?>
 <?= dvc_chip($initial, 'Down', 'rx', true) ?>
 <?= dvc_chip($initial, 'Up', 'tx', true) ?>
 <?= dvc_chip($initial, 'Temp', 'temp') ?>
 <?= dvc_chip($initial, 'Uptime', 'uptime') ?>
-<?= dvc_chip($initial, 'Iface', 'iface') ?>
 <?= dvc_chip($initial, 'AB', 'ab', true) ?>
 <?= dvc_chip($initial, 'MB', 'mb', true) ?>
-<?= dvc_chip($initial, 'TGIF', 'hblink', true) ?>
+<?= dvc_chip($initial, 'TGIFD', 'hblink', true) ?>
 <?= dvc_chip($initial, 'BMTD', 'bmtd', true) ?>
+<?= dvc_chip($initial, 'M17D', 'm17d', true) ?>
+<?= dvc_chip($initial, 'IPSC3D', 'ipsc3d', true) ?>
 </div>
 </div>

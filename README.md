@@ -4,7 +4,7 @@
 
 ✅ Built for ASL3 + DVSwitch on Debian-based systems  
 ✅ Works with normal DVSwitch installs  
-✅ Optional support for BM/STFU and AllTune2 TGIFD when present  
+✅ Expanded BrandMeister, TGIF, M17, and IPSC3 support when AllTune2 is present
 ✅ No network control logic added  
 
 DVSwitch Cockpit is a modern web dashboard for watching what your ASL3 / DVSwitch node is doing.
@@ -76,6 +76,10 @@ It does not add network control logic. It is a status dashboard with limited ser
 
 If you need mode or talkgroup control, use your normal DVSwitch tools or another controller.
 
+When used with AllTune2, its DVSwitch button opens DVSwitch Cockpit when Cockpit is installed. If DVSwitch Cockpit is not installed, AllTune2 falls back to the standard DVSwitch Dashboard.
+
+For full network control and expanded digital-network integration, use DVSwitch Cockpit with AllTune2.
+
 ---
 
 ## 🚀 Fresh install
@@ -95,11 +99,6 @@ Open:
 http://YOUR-NODE-IP/dvswitch_cockpit/
 ```
 
-Example:
-
-```text
-http://192.168.1.120/dvswitch_cockpit/
-```
 
 ---
 
@@ -358,7 +357,7 @@ Recommended options:
 A local IP address such as:
 
 ```text
-https://192.168.1.120/dvswitch_cockpit/
+https://YOUR-NODE-IP/dvswitch_cockpit/
 ```
 
 may show a browser certificate warning. That is normal if Apache is using a self-signed certificate or a certificate for a different hostname.
@@ -368,22 +367,17 @@ A trusted certificate must match the hostname used in the browser.
 For example, a Let's Encrypt certificate for:
 
 ```text
-kc3kmv.mywire.org
+your-ddns-name.example.org
 ```
 
 will not be trusted for:
 
 ```text
-192.168.1.120
+YOUR-NODE-IP
 ```
 
 If the browser shows a certificate warning, check what certificate Apache is serving.
 
-Example:
-
-```bash
-openssl s_client -connect your-ddns-name.example.org:443 -servername your-ddns-name.example.org </dev/null 2>/dev/null \
-  | openssl x509 -noout -subject -issuer -dates -ext subjectAltName
 ```
 
 Replace `your-ddns-name.example.org` with the real hostname you use in the browser.

@@ -91,7 +91,7 @@ function dc_adapter_dstar(array $bridgeLines, array $abinfo, array $cache, strin
 
             // MMDVM_Bridge can report the local user's D-Star audio back as a
             // network header after the local key-up. Keep that event in Local
-            // Activity only so the same KC3KMV transmission does not appear as
+            // Activity only so the same local transmission does not appear as
             // duplicate Gateway Activity.
             if (dc_dstar_is_local_call($call, $localCalls)) {
                 $pendingDstarEot = 'local_self';

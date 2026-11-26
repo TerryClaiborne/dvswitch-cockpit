@@ -7,6 +7,8 @@ function a(x){return s(x).replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
 function modeClass(mode){
   const m=String(mode||'').toUpperCase()
   if(m.includes('TGIF')) return 'mode-tgif'
+  if(m.includes('IPSC3')) return 'mode-ipsc3'
+  if(m.includes('M17')) return 'mode-m17'
   if(m.includes('YSF')) return 'mode-ysf'
   if(m.includes('D-STAR') || m.includes('DSTAR')) return 'mode-dstar'
   if(m.includes('P25')) return 'mode-p25'
@@ -116,6 +118,8 @@ function apply(d){
  t('summary-line-2',d.target_note||'(runtime detection active)')
  t('mode-bm',stateLabel(d.provider,'BrandMeister',d.connection_state))
  t('mode-tgif',((d.provider==='TGIFD')&&d.connection_state==='Connected')?'Active':'Idle')
+ t('mode-m17',stateLabel(d.provider,'M17',d.connection_state))
+ t('mode-ipsc3',stateLabel(d.provider,'IPSC3',d.connection_state))
  t('mode-ysf',stateLabel(d.provider,'YSF',d.connection_state))
  t('mode-dstar',stateLabel(d.provider,'D-Star',d.connection_state))
  t('mode-p25',stateLabel(d.provider,'P25',d.connection_state))

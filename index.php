@@ -168,6 +168,8 @@ $dvcAssetVersion = $dvcVersion . '-' . max(
         <div class="network-status-grid">
           <div class="network-box card-dark net-bm"><span>BrandMeister</span><strong id="mode-bm">--</strong></div>
           <div class="network-box card-dark net-tgif"><span>TGIF</span><strong id="mode-tgif">--</strong></div>
+          <div class="network-box card-dark net-m17"><span>M17</span><strong id="mode-m17">--</strong></div>
+          <div class="network-box card-dark net-ipsc3"><span>IPSC3</span><strong id="mode-ipsc3">--</strong></div>
           <div class="network-box card-dark net-ysf"><span>YSF</span><strong id="mode-ysf">--</strong></div>
           <div class="network-box card-dark net-dstar"><span>D-Star</span><strong id="mode-dstar">--</strong></div>
           <div class="network-box card-dark net-p25"><span>P25</span><strong id="mode-p25">--</strong></div>

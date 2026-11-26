@@ -39,8 +39,13 @@ A stock install should still show:
 The cockpit can also detect:
 
 - BM/STFU when STFU is installed and running
-- TGIF / AllTune2 TGIFD when matching runtime evidence is available
+- AllTune2 BMTD / BrandMeister when present
+- AllTune2 TGIFD when present
+- AllTune2 M17D when present
+- AllTune2 IPSC3D when present
 - AllTune2 private-node state when `/var/www/html/alltune2/config.ini` exists and Asterisk `rpt nodes` can be read
+
+All AllTune2 integrations use the production tree at `/var/www/html/alltune2`.
 
 Those integrations are optional and are not required for a normal ASL3 / DVSwitch install.
 

@@ -97,6 +97,8 @@ function dc_resolve_active(array $abinfo, array $adapters, array &$stateCache = 
     $bmStfu  = $adapters['bm_stfu']      ?? dc_idle_adapter('BrandMeister');
     $bmStock = $adapters['bm_stock']     ?? dc_idle_adapter('BrandMeister');
     $bmtd    = $adapters['bmtd']         ?? dc_idle_adapter('BrandMeister');
+    $m17d    = $adapters['m17d']         ?? dc_idle_adapter('M17');
+    $ipsc3d  = $adapters['ipsc3d']       ?? dc_idle_adapter('IPSC3');
     $ysf     = $adapters['ysf']          ?? dc_idle_adapter('YSF');
     $dstar   = $adapters['dstar']        ?? dc_idle_adapter('D-Star');
     $tgifd   = $adapters['tgifd']        ?? dc_idle_adapter('TGIF');
@@ -118,8 +120,16 @@ function dc_resolve_active(array $abinfo, array $adapters, array &$stateCache = 
         unset($stateCache['bm_stock']);
     }
 
-    // BMTD and TGIFD own direct TLV paths outside normal MMDVM_Bridge runtime,
+    // Native M17D/IPSC3D/BMTD/TGIFD own direct runtime paths outside normal MMDVM_Bridge detection,
     // so they must beat stale live Analog_Bridge mode detection.
+    if (dc_adapter_is_connected($m17d)) {
+        return $m17d;
+    }
+
+    if (dc_adapter_is_connected($ipsc3d)) {
+        return $ipsc3d;
+    }
+
     if (dc_adapter_is_connected($bmtd)) {
         return $bmtd;
     }

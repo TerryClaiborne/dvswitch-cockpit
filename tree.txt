@@ -1,22 +1,14 @@
-DVSwitch Cockpit release tree
-=============================
-
-Generated from the release working tree.
-Local runtime/cache/log files are intentionally excluded.
-
-.gitignore
-.htaccess
-README.md
-VERSION
 api/runtime/adapters/BmStfuAdapter.php
 api/runtime/adapters/BmStockAdapter.php
 api/runtime/adapters/BmtdAdapter.php
 api/runtime/adapters/DstarAdapter.php
 api/runtime/adapters/GenericAdapter.php
+api/runtime/adapters/Ipsc3dAdapter.php
+api/runtime/adapters/M17dAdapter.php
 api/runtime/adapters/NxdnAdapter.php
 api/runtime/adapters/P25Adapter.php
-api/runtime/adapters/TgifHblinkAdapter.php
 api/runtime/adapters/TgifdAdapter.php
+api/runtime/adapters/TgifHblinkAdapter.php
 api/runtime/adapters/YsfAdapter.php
 api/runtime/common.php
 api/runtime/history.php
@@ -24,17 +16,20 @@ api/runtime/resolver.php
 api/runtime_status.php
 api/security.php
 api/service_action.php
-data/cache/.gitkeep
-data/private/.gitkeep
 data/private/auth.ini.example
+data/private/.gitkeep
 docs/BACKEND_PLAN.md
 docs/INSTALL.md
 docs/PROJECT_NOTES.md
+.gitignore
+.htaccess
 includes/system_ribbon.php
 index.html
 index.php
+LICENSE
 login.php
 logout.php
+README.md
 screenshot-dark.png
 screenshot-light.png
 setup_dvswitch_cockpit.sh
@@ -44,3 +39,4 @@ static/theme.css
 static/theme.js
 systemd/sudoers.dvswitch-cockpit-example
 tree.txt
+VERSION

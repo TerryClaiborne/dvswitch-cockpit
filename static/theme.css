@@ -557,3 +557,16 @@ html[data-theme="light"] .cockpit-login-error {
     border-color: #d99aaa;
     color: #8e2438;
 }
+
+/* M17-IPSC3-LIGHT-NETWORK-BOXES-20261125
+ * Match the existing light-theme treatment of the other network boxes.
+ */
+html[data-theme="light"] .network-box.net-m17 {
+    background: linear-gradient(90deg, #ecebff, #ffffff);
+    border-color: rgba(99, 102, 241, .34);
+}
+
+html[data-theme="light"] .network-box.net-ipsc3 {
+    background: linear-gradient(90deg, #fff0e5, #ffffff);
+    border-color: rgba(249, 115, 22, .34);
+}

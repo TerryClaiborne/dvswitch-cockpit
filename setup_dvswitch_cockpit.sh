@@ -232,6 +232,7 @@ if command -v apt-get >/dev/null 2>&1; then
   NEED_PKGS=()
   command -v apache2 >/dev/null 2>&1 || NEED_PKGS+=(apache2)
   command -v php >/dev/null 2>&1 || NEED_PKGS+=(php)
+  command -v python3 >/dev/null 2>&1 || NEED_PKGS+=(python3)
   command -v unzip >/dev/null 2>&1 || NEED_PKGS+=(unzip)
 
   if [[ ${#NEED_PKGS[@]} -gt 0 ]]; then
@@ -695,7 +696,8 @@ PYRESTORE
 
     if [[ "$APACHE_FILTER_OUTPUT" == *"CHANGED"* ]]; then
       echo "Cockpit polling marker installed and Apache access-log filtering configured."
-      echo "Apache site backup: $APACHE_FILTER_BACKUP_DIR"
+      rm -rf "$APACHE_FILTER_BACKUP_DIR"
+      echo "Temporary Apache site backup removed after successful verification."
     else
       echo "Cockpit polling marker installed; existing Apache CustomLog configuration preserved."
     fi
@@ -735,4 +737,9 @@ echo "  - To set/change the web login password, run: sudo /var/www/html/dvswitch
 echo "  - To disable web login and keep the saved hash, run: sudo /var/www/html/dvswitch_cockpit/setup_dvswitch_cockpit.sh --disable-auth"
 echo "  - A last-known-good subscriber fallback is kept in $CACHE_DIR when possible."
 echo
+if [[ -n "${BACKUP:-}" && -d "$BACKUP" ]]; then
+  rm -rf "$BACKUP"
+  echo "Temporary pre-update application backup removed after successful setup."
+fi
+
 echo "Setup complete."

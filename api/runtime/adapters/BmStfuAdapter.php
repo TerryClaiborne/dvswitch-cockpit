@@ -101,7 +101,7 @@ function dc_adapter_bm_stfu(array $stfuLines, array $abinfo, array $cache, strin
 
             // STFU can log some bridged BM traffic as src=<selected TG>,
             // dst=<selected TG>. That is not proof of local TX, so do not
-            // invent KC3KMV/LNet. Also do not guess from Talker Alias. Show the
+            // invent a local callsign/LNet. Also do not guess from Talker Alias. Show the
             // source value STFU actually reported so the row remains traceable.
             $isAmbiguousTgSource = ($src !== '' && $rowTargetNum !== '' && $src === $rowTargetNum);
             if ($isAmbiguousTgSource) {
@@ -154,7 +154,7 @@ function dc_adapter_bm_stfu(array $stfuLines, array $abinfo, array $cache, strin
         if (preg_match('/DMR,\s+TX state\s*=\s*OFF,\s*DMR frame count was\s+([0-9]+)\s+frames/i', $line, $m)) {
             // Newer/alternate STFU builds log local TX completion this way
             // instead of the older ODMR End Tx wording. Without this pattern,
-            // local key-ups on TGs such as 3220008 show no Dur(s) even though
+            // local key-ups on TGs such as the configured local ID show no Dur(s) even though
             // STFU logged the frame count.
             $selected = $selectedTargetNow();
             if ($openIdx !== null && isset($rows[$openIdx])) {

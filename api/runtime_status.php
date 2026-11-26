@@ -18,6 +18,8 @@ require __DIR__ . '/runtime/adapters/BmStockAdapter.php';
 require __DIR__ . '/runtime/adapters/BmtdAdapter.php';
 require __DIR__ . '/runtime/adapters/TgifHblinkAdapter.php';
 require __DIR__ . '/runtime/adapters/TgifdAdapter.php';
+require __DIR__ . '/runtime/adapters/M17dAdapter.php';
+require __DIR__ . '/runtime/adapters/Ipsc3dAdapter.php';
 require __DIR__ . '/runtime/adapters/GenericAdapter.php';
 require __DIR__ . '/runtime/adapters/P25Adapter.php';
 require __DIR__ . '/runtime/adapters/NxdnAdapter.php';
@@ -84,11 +86,13 @@ $adapters['bm_stfu']     = dc_adapter_bm_stfu($stfuLines, $abinfo, $cache, $tzNa
 $adapters['bm_stock']    = dc_adapter_bm_stock($analogLines, $abinfo, $services, $cache, $tzName);
 $adapters['bmtd']        = dc_adapter_bmtd($tzName);
 $adapters['tgifd']        = dc_adapter_tgifd($tzName);
+$adapters['m17d']         = dc_adapter_m17d($tzName);
+$adapters['ipsc3d']       = dc_adapter_ipsc3d($tzName);
 $adapters['p25']         = dc_adapter_p25($analogLines, $bridgeLines, $abinfo, $cache, $tzName);
 $adapters['nxdn']        = dc_adapter_nxdn($analogLines, $bridgeLines, $abinfo, $cache, $tzName);
 $adapters['generic']     = dc_adapter_generic($bridgeLines, $tzName, $abinfo);
 
-foreach (['ysf','dstar','bm_stfu','bm_stock','bmtd','tgifd','p25','nxdn','generic'] as $name) {
+foreach (['ysf','dstar','bm_stfu','bm_stock','bmtd','tgifd','m17d','ipsc3d','p25','nxdn','generic'] as $name) {
     if (!isset($adapters[$name]) || !is_array($adapters[$name])) {
         $adapters[$name] = dc_idle_adapter('Idle');
     }
@@ -144,6 +148,16 @@ dc_save_state_cache([
         'target_display'   => $adapters['tgifd']['target_display'] ?? '--',
         'last_heard'       => $adapters['tgifd']['last_heard'] ?? '--',
     ],
+    'm17d' => [
+        'connection_state' => $adapters['m17d']['connection_state'] ?? 'Idle',
+        'target_display'   => $adapters['m17d']['target_display'] ?? '--',
+        'last_heard'       => $adapters['m17d']['last_heard'] ?? '--',
+    ],
+    'ipsc3d' => [
+        'connection_state' => $adapters['ipsc3d']['connection_state'] ?? 'Idle',
+        'target_display'   => $adapters['ipsc3d']['target_display'] ?? '--',
+        'last_heard'       => $adapters['ipsc3d']['last_heard'] ?? '--',
+    ],
     'p25' => [
         'connection_state' => $adapters['p25']['connection_state'] ?? 'Idle',
         'target_display'   => $adapters['p25']['target_display'] ?? '--',
@@ -173,6 +187,8 @@ $historyRows = array_merge(
     $mmdvmActiveForHistory && is_array($adapters['bm_stock']['rows'] ?? null) ? $adapters['bm_stock']['rows'] : [],
     is_array($adapters['bmtd']['rows'] ?? null) ? $adapters['bmtd']['rows'] : [],
     is_array($adapters['tgifd']['rows'] ?? null) ? $adapters['tgifd']['rows'] : [],
+    is_array($adapters['m17d']['rows'] ?? null) ? $adapters['m17d']['rows'] : [],
+    is_array($adapters['ipsc3d']['rows'] ?? null) ? $adapters['ipsc3d']['rows'] : [],
     is_array($adapters['p25']['rows'] ?? null) ? $adapters['p25']['rows'] : [],
     is_array($adapters['nxdn']['rows'] ?? null) ? $adapters['nxdn']['rows'] : [],
     $genericRowsForHistory

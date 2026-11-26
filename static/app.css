@@ -190,7 +190,7 @@ body{min-height:100vh;font-family:Arial,Helvetica,sans-serif;color:var(--purple)
 
 /* Let the top system ribbon use the same width as the dashboard so it can hold more chips. */
 .dvc-ribbon{width:100% !important;max-width:1220px !important;margin:2px auto 6px !important;padding:4px 6px !important}
-.dvc-ribbon .dvc-ribbon-row{display:flex !important;width:100% !important;max-width:100% !important;margin:0 auto !important;justify-content:center !important;flex-wrap:wrap !important;white-space:normal !important;overflow:visible !important;gap:4px !important}
+.dvc-ribbon .dvc-ribbon-row{display:flex !important;width:100% !important;max-width:100% !important;margin:0 auto !important;justify-content:center !important;flex-wrap:nowrap !important;white-space:nowrap !important;overflow:visible !important;gap:3px !important}
 .dvc-ribbon .dvc-ribbon-pill{min-height:20px !important;font-size:9px !important;padding:0 6px !important}
 
 /* AB detail strip belongs inside the Gateway Activity card, not in the left card or page footer. */
@@ -225,6 +225,8 @@ body{min-height:100vh;font-family:Arial,Helvetica,sans-serif;color:var(--purple)
 .activity-table tbody tr.mode-dstar td:first-child{box-shadow:inset 3px 0 0 rgba(246,196,46,.75)}
 .activity-table tbody tr.mode-p25 td:first-child{box-shadow:inset 3px 0 0 rgba(34,211,238,.75)}
 .activity-table tbody tr.mode-nxdn td:first-child{box-shadow:inset 3px 0 0 rgba(249,115,22,.75)}
+.activity-table tbody tr.mode-m17 td:first-child{box-shadow:inset 3px 0 0 rgba(79,70,229,.88)}
+.activity-table tbody tr.mode-ipsc3 td:first-child{box-shadow:inset 3px 0 0 rgba(249,115,22,.88)}
 
 .mode-badge{display:inline-flex;align-items:center;justify-content:center;min-width:58px;padding:3px 7px;border-radius:5px;font-weight:800;font-size:9px;line-height:1;border:1px solid rgba(255,255,255,.12);box-shadow:inset 0 0 0 1px rgba(255,255,255,.035)}
 .mode-badge.mode-bm{background:linear-gradient(180deg,#9b32e4,#5b1ca4);color:#fff;border-color:rgba(201,146,255,.45)}
@@ -233,9 +235,11 @@ body{min-height:100vh;font-family:Arial,Helvetica,sans-serif;color:var(--purple)
 .mode-badge.mode-dstar{background:linear-gradient(180deg,#d4a014,#765100);color:#fff8d2;border-color:rgba(255,215,86,.45)}
 .mode-badge.mode-p25{background:linear-gradient(180deg,#0aa6b9,#075565);color:#eaffff;border-color:rgba(49,230,255,.45)}
 .mode-badge.mode-nxdn{background:linear-gradient(180deg,#d76b14,#793308);color:#fff4e8;border-color:rgba(255,151,72,.48)}
+.mode-badge.mode-m17{background:linear-gradient(180deg,#4f46e5,#312e81);color:#eef2ff;border-color:rgba(129,140,248,.62)}
+.mode-badge.mode-ipsc3{background:linear-gradient(180deg,#ea580c,#9a3412);color:#fff7ed;border-color:rgba(251,146,60,.62)}
 .mode-badge.mode-other{background:linear-gradient(180deg,#5b5675,#333048);color:#fff}
 
-.target-text{font-weight:800}.target-text.mode-bm{color:#c563ff}.target-text.mode-tgif{color:#3eb7ff}.target-text.mode-ysf{color:#70ff65}.target-text.mode-dstar{color:#ffd24d}.target-text.mode-p25{color:#41e7ff}.target-text.mode-nxdn{color:#ff943d}
+.target-text{font-weight:800}.target-text.mode-bm{color:#c563ff}.target-text.mode-tgif{color:#3eb7ff}.target-text.mode-m17{color:#818cf8}.target-text.mode-ipsc3{color:#fb923c}.target-text.mode-ysf{color:#70ff65}.target-text.mode-dstar{color:#ffd24d}.target-text.mode-p25{color:#41e7ff}.target-text.mode-nxdn{color:#ff943d}
 .station-plain{color:#f2eaff;font-weight:700}
 .qrz-link{color:#52ffe2;text-decoration:none;font-weight:900;border-bottom:1px dotted rgba(82,255,226,.55);letter-spacing:.01em}
 .qrz-link:hover{color:#ffffff;text-shadow:0 0 8px rgba(82,255,226,.55);border-bottom-color:rgba(255,255,255,.92)}
@@ -245,11 +249,13 @@ body{min-height:100vh;font-family:Arial,Helvetica,sans-serif;color:var(--purple)
 .network-box{border:1px solid rgba(154,123,233,.18);box-shadow:inset 0 0 0 1px rgba(255,255,255,.018)}
 .network-box.net-bm{border-color:rgba(168,85,247,.40);background:linear-gradient(90deg,rgba(116,38,184,.36),rgba(12,13,28,.92))}
 .network-box.net-tgif{border-color:rgba(45,155,255,.40);background:linear-gradient(90deg,rgba(20,94,170,.34),rgba(12,13,28,.92))}
+.network-box.net-m17{border-color:rgba(99,102,241,.52);background:linear-gradient(90deg,rgba(67,56,202,.34),rgba(12,13,28,.92))}
+.network-box.net-ipsc3{border-color:rgba(249,115,22,.52);background:linear-gradient(90deg,rgba(194,65,12,.34),rgba(12,13,28,.92))}
 .network-box.net-ysf{border-color:rgba(75,220,90,.38);background:linear-gradient(90deg,rgba(26,117,42,.30),rgba(12,13,28,.92))}
 .network-box.net-dstar{border-color:rgba(246,196,46,.36);background:linear-gradient(90deg,rgba(128,89,10,.25),rgba(12,13,28,.92))}
 .network-box.net-p25{border-color:rgba(34,211,238,.36);background:linear-gradient(90deg,rgba(15,113,129,.24),rgba(12,13,28,.92))}
 .network-box.net-nxdn{border-color:rgba(249,115,22,.36);background:linear-gradient(90deg,rgba(136,63,14,.24),rgba(12,13,28,.92))}
-.network-box.net-bm span:before{content:'⌁ ';color:#b95cff}.network-box.net-tgif span:before{content:'⌁ ';color:#32a8ff}.network-box.net-ysf span:before{content:'⌁ ';color:#65ff72}.network-box.net-dstar span:before{content:'✦ ';color:#ffd24d}.network-box.net-p25 span:before{content:'◇ ';color:#38e2ff}.network-box.net-nxdn span:before{content:'◇ ';color:#ff943d}
+.network-box.net-bm span:before{content:'⌁ ';color:#b95cff}.network-box.net-tgif span:before{content:'⌁ ';color:#32a8ff}.network-box.net-m17 span:before{content:'◇ ';color:#818cf8}.network-box.net-ipsc3 span:before{content:'◇ ';color:#fb923c}.network-box.net-ysf span:before{content:'⌁ ';color:#65ff72}.network-box.net-dstar span:before{content:'✦ ';color:#ffd24d}.network-box.net-p25 span:before{content:'◇ ';color:#38e2ff}.network-box.net-nxdn span:before{content:'◇ ';color:#ff943d}
 
 /* Dur(s) column: warm amber balances the purple/blue/green network colors without changing runtime data. */
 .duration-cell{text-align:left}
@@ -355,4 +361,10 @@ body{min-height:100vh;font-family:Arial,Helvetica,sans-serif;color:var(--purple)
 }
 .cockpit-login-back a:hover{
   color:#fff;
+}
+
+
+/* 2026-11-25 final desktop fit: enlarge Cockpit ~10% from the current accepted view. */
+@media (min-width:1500px) and (min-height:900px){
+  body{zoom:1.10}
 }
